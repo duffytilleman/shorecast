@@ -5,17 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "node --test src/lib/tides.test.ts",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@neaps/tide-predictor": "^0.8.0",
     "d3": "^7.9.0",
     "solid-js": "^1.8.15"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
+    "jsdom": "^29.0.1",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
-    "vite-plugin-solid": "^2.10.2"
+    "vite-plugin-solid": "^2.10.2",
+    "vitest": "^1.6.1"
   }
 }

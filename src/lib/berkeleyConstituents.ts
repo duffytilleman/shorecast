@@ -5,6 +5,7 @@ import type { Constituent } from './tides'
 const parsed = d3.csvParse(csv)
 
 export const constituents: Constituent[] = parsed.map((row) => ({
+  name: row['Name']!,
   amplitude: parseFloat(row['Amplitude']!),
   phase: parseFloat(row['Phase']!),
   speed: parseFloat(row['Speed']!),
