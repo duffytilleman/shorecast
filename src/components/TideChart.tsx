@@ -453,6 +453,106 @@ export default function TideChart(props: TideChartProps) {
       .call((g) => g.selectAll('.tick line').attr('stroke', '#6b5335').attr('stroke-opacity', 0.4))
       .call((g) => g.selectAll('.tick text').attr('fill', '#5a4430'))
 
+    // --- Hover crosshair ---
+    const hoverGroup = svg.append('g').style('display', 'none')
+
+    hoverGroup.append('line')
+      .attr('class', 'hover-line')
+      .attr('y1', margin.top)
+      .attr('y2', height - margin.bottom)
+      .attr('stroke', '#5a4430')
+      .attr('stroke-width', 1)
+      .attr('stroke-dasharray', '4,3')
+      .attr('stroke-opacity', 0.6)
+
+    const hoverDot = hoverGroup.append('circle')
+      .attr('r', 4)
+      .attr('fill', '#1a3a5c')
+      .attr('stroke', '#f0e6d3')
+      .attr('stroke-width', 1.5)
+
+    const hoverTooltip = hoverGroup.append('g').attr('class', 'hover-tooltip')
+
+    const tooltipBg = hoverTooltip.append('rect')
+      .attr('fill', 'rgba(240, 230, 211, 0.92)')
+      .attr('stroke', '#8b7355')
+      .attr('stroke-width', 0.5)
+      .attr('rx', 4)
+
+    const tooltipText = hoverTooltip.append('text')
+      .attr('fill', '#5a4430')
+      .attr('font-size', '11px')
+
+    // Find nearest weather observation/forecast for a given time
+    function findNearest<T extends { time: number }>(arr: T[], time: number): T | null {
+      if (!arr.length) return null
+      let best = arr[0]
+      let bestDist = Math.abs(arr[0].time - time)
+      for (let i = 1; i < arr.length; i++) {
+        const dist = Math.abs(arr[i].time - time)
+        if (dist < bestDist) { best = arr[i]; bestDist = dist }
+        else break // sorted, so once distance increases we're past the closest
+      }
+      // Only match within 1 hour
+      return bestDist < 60 * 60 * 1000 ? best : null
+    }
+
+    svg.append('rect')
+      .attr('x', margin.left)
+      .attr('y', margin.top)
+      .attr('width', width - margin.left - margin.right)
+      .attr('height', height - margin.top - margin.bottom)
+      .attr('fill', 'none')
+      .attr('pointer-events', 'all')
+      .on('mouseenter', () => hoverGroup.style('display', null))
+      .on('mouseleave', () => hoverGroup.style('display', 'none'))
+      .on('mousemove', (event: MouseEvent) => {
+        const [mx] = d3.pointer(event)
+        const hoverTime = xScale.invert(mx).getTime()
+        const level = predictTide(hoverTime, props.constituents, props.meanSeaLevel)
+        const x = xScale(hoverTime)
+        const y = yScale(level)
+
+        hoverGroup.select('.hover-line')
+          .attr('x1', x).attr('x2', x)
+
+        hoverDot.attr('cx', x).attr('cy', y)
+
+        // Build tooltip lines
+        const timeStr = d3.timeFormat('%a %-I:%M %p')(new Date(hoverTime))
+        const lines: string[] = [timeStr, `${level.toFixed(2)} ft`]
+
+        if (props.metData?.temperature?.length) {
+          const temp = findNearest(props.metData.temperature, hoverTime)
+          if (temp) lines.push(`${temp.value.toFixed(0)}°F`)
+        }
+        if (props.metData?.wind?.length) {
+          const wind = findNearest(props.metData.wind, hoverTime)
+          if (wind) lines.push(`${Math.round(wind.speed)} kn ${wind.direction}`)
+        }
+
+        tooltipText.selectAll('tspan').remove()
+        lines.forEach((line, i) => {
+          tooltipText.append('tspan')
+            .attr('x', 8)
+            .attr('dy', i === 0 ? '1em' : '1.3em')
+            .text(line)
+        })
+
+        const bbox = (tooltipText.node()! as SVGTextElement).getBBox()
+        const tooltipW = bbox.width + 16
+        const tooltipH = bbox.height + 10
+
+        // Position tooltip to the right of cursor, flip if near edge
+        const tooltipX = x + 12
+        const flip = tooltipX + tooltipW > width - margin.right
+        hoverTooltip.attr('transform', `translate(${flip ? x - tooltipW - 12 : tooltipX},${Math.max(margin.top, y - tooltipH / 2)})`)
+
+        tooltipBg
+          .attr('width', tooltipW)
+          .attr('height', tooltipH)
+      })
+
     // Scroll to "now" on first render, preserve position on re-renders
     const scrollEl = scrollWrapper.node()!
     if (initialRender) {
