@@ -28,6 +28,8 @@ function findHighLowTides(
 
 export default function TideChart(props: TideChartProps) {
   let container!: HTMLDivElement
+  let futureHours = 24 * 30 // 30 days pre-rendered
+  let initialRender = true
 
   onMount(() => {
     renderChart()
@@ -45,19 +47,42 @@ export default function TideChart(props: TideChartProps) {
   }, { defer: true }))
 
   function renderChart() {
+    // Preserve scroll position across re-renders (except initial)
+    const prevScrollLeft = container.querySelector('.tide-scroll')?.scrollLeft
     container.innerHTML = ''
 
     const rect = container.getBoundingClientRect()
-    const width = Math.max(rect.width, 600)
-    const height = Math.max(540, Math.min(860, width * 0.58))
+    const containerWidth = Math.max(rect.width, 600)
+    const height = Math.max(540, Math.min(860, containerWidth * 0.58))
     const hasTemp = props.metData?.temperature?.length
     const hasWind = props.metData?.wind?.length
     const margin = { top: hasWind ? 56 : 26, right: hasTemp ? 55 : 20, bottom: 52, left: 50 }
 
     const now = Date.now()
     const startTime = now - 12 * 60 * 60 * 1000
-    const endTime = now + 72 * 60 * 60 * 1000
+    const endTime = now + futureHours * 60 * 60 * 1000
+    const totalHours = (endTime - startTime) / (60 * 60 * 1000)
+    const initialHours = 84 // -12h + 72h
+    const pxPerHour = containerWidth / initialHours
+    const width = pxPerHour * totalHours
     const step = 6 * 60 * 1000 // 6 minutes
+
+    // Create scroll wrapper
+    const scrollWrapper = d3.select(container).append('div')
+      .attr('class', 'tide-scroll')
+      .style('overflow-x', 'auto')
+      .style('overflow-y', 'hidden')
+      .style('-webkit-overflow-scrolling', 'touch')
+
+    // Extend chart when scrolling near the right edge
+    scrollWrapper.on('scroll', () => {
+      const el = scrollWrapper.node()!
+      const remaining = el.scrollWidth - el.scrollLeft - el.clientWidth
+      if (remaining < containerWidth) {
+        futureHours += 24 * 30
+        renderChart()
+      }
+    })
 
     const data: { time: number; level: number }[] = []
     for (let t = startTime; t <= endTime; t += step) {
@@ -83,10 +108,10 @@ export default function TideChart(props: TideChartProps) {
       .domain([yExtent[0] - yPad, yExtent[1] + yPad])
       .range([height - margin.bottom, margin.top])
 
-    const svg = d3
-      .select(container)
+    const svg = scrollWrapper
       .append('svg')
-      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('width', width)
+      .attr('height', height)
       .attr('class', 'tide-svg')
 
     // Defs: gradient for area fill and filters
@@ -427,6 +452,16 @@ export default function TideChart(props: TideChartProps) {
       .call((g) => g.select('.domain').attr('stroke', '#6b5335').attr('stroke-opacity', 0.6))
       .call((g) => g.selectAll('.tick line').attr('stroke', '#6b5335').attr('stroke-opacity', 0.4))
       .call((g) => g.selectAll('.tick text').attr('fill', '#5a4430'))
+
+    // Scroll to "now" on first render, preserve position on re-renders
+    const scrollEl = scrollWrapper.node()!
+    if (initialRender) {
+      const nowScrollX = xScale(now) - containerWidth / 2
+      scrollEl.scrollLeft = Math.max(0, nowScrollX)
+      initialRender = false
+    } else if (prevScrollLeft != null) {
+      scrollEl.scrollLeft = prevScrollLeft
+    }
 
     // Current reading info below chart
     const info = d3.select(container).append('div').attr('class', 'tide-info')
