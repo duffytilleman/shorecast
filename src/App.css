@@ -1,27 +1,239 @@
-#root {
-  max-width: 1280px;
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IM+Fell+English:ital@0;1&display=swap');
+
+.app {
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 1.5rem 3rem;
+}
+
+/* ── Header ─────────────────────────────────── */
+
+.header {
   text-align: center;
+  margin-bottom: 2rem;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.solid:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.header-ornament {
+  font-size: 1.4rem;
+  color: #8b7355;
+  opacity: 0.5;
+  margin-bottom: 0.25rem;
 }
 
-.card {
-  padding: 2em;
+.title {
+  font-family: 'IM Fell English', 'Libre Baskerville', Georgia, serif;
+  font-size: 2.8rem;
+  font-weight: 400;
+  color: #2c1e0f;
+  letter-spacing: 0.06em;
+  margin: 0;
+  line-height: 1.2;
+  text-shadow: 1px 1px 0 rgba(255, 245, 230, 0.4);
 }
 
-.read-the-docs {
-  color: #888;
+.subtitle {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: #6b5335;
+  margin: 0.3rem 0 0;
+  letter-spacing: 0.04em;
+}
+
+.header-rule {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.header-rule::before,
+.header-rule::after {
+  content: '';
+  flex: 1;
+  max-width: 180px;
+  height: 1px;
+  background: linear-gradient(
+    to var(--dir, right),
+    transparent,
+    #8b7355 40%,
+    #8b7355
+  );
+  opacity: 0.4;
+}
+
+.header-rule::before {
+  --dir: right;
+}
+
+.header-rule::after {
+  --dir: left;
+}
+
+.rule-ornament {
+  color: #8b7355;
+  font-size: 1.2rem;
+  opacity: 0.6;
+  line-height: 1;
+}
+
+/* ── Tide Chart Container ───────────────────── */
+
+.tide-chart-container {
+  background: rgba(240, 230, 211, 0.08);
+  border: 1px solid rgba(139, 115, 85, 0.2);
+  border-radius: 3px;
+  padding: 1rem 0.5rem 0;
+  position: relative;
+}
+
+.tide-chart-container::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(139, 115, 85, 0.1);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.tide-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── SVG Typography ─────────────────────────── */
+
+.tide-svg text {
+  font-family: 'Libre Baskerville', Georgia, serif;
+}
+
+.tide-svg .axis text {
+  font-size: 11px;
+  font-family: 'Libre Baskerville', Georgia, serif;
+}
+
+.tide-svg .mean-label {
+  font-size: 9px;
+  font-style: italic;
+  fill: #6b5335;
+  opacity: 0.7;
+}
+
+.tide-svg .extrema-label {
+  font-size: 10px;
+  font-weight: 700;
+  fill: #2c1e0f;
+}
+
+.tide-svg .extrema-time {
+  font-size: 8.5px;
+  font-style: italic;
+  fill: #6b5335;
+}
+
+.tide-svg .date-label {
+  font-size: 10px;
+  font-style: italic;
+  fill: #6b5335;
+  opacity: 0.8;
+}
+
+/* ── Tide Info Bar ──────────────────────────── */
+
+.tide-info {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+  padding: 1.2rem 1rem;
+  border-top: 1px solid rgba(139, 115, 85, 0.15);
+  margin-top: 0.5rem;
+  font-family: 'Libre Baskerville', Georgia, serif;
+}
+
+.tide-reading,
+.tide-direction,
+.tide-next {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.reading-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2c1e0f;
+  letter-spacing: 0.02em;
+}
+
+.reading-label {
+  font-size: 0.7rem;
+  font-style: italic;
+  color: #8b7355;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.direction-arrow {
+  font-size: 1.3rem;
+  color: #c0392b;
+}
+
+.direction-text {
+  font-size: 0.7rem;
+  font-style: italic;
+  color: #8b7355;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.next-label {
+  font-size: 0.7rem;
+  font-style: italic;
+  color: #8b7355;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.next-value {
+  font-size: 1rem;
+  color: #2c1e0f;
+}
+
+/* ── Footer ─────────────────────────────────── */
+
+.footer {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(139, 115, 85, 0.15);
+}
+
+.footer p {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-style: italic;
+  font-size: 0.75rem;
+  color: #8b7355;
+  opacity: 0.7;
+  margin: 0;
+  letter-spacing: 0.03em;
+}
+
+/* ── Responsive ─────────────────────────────── */
+
+@media (max-width: 700px) {
+  .title {
+    font-size: 2rem;
+  }
+
+  .tide-info {
+    gap: 1.2rem;
+    flex-wrap: wrap;
+  }
+
+  .reading-value {
+    font-size: 1.2rem;
+  }
 }

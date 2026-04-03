@@ -1,34 +1,23 @@
-import { createSignal } from 'solid-js'
-import solidLogo from './assets/solid.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import TideChart from './components/TideChart'
+import { constituents } from './lib/berkeleyConstituents'
 
 function App() {
-  const [count, setCount] = createSignal(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} class="logo" alt="Vite logo" />
-        </a>
-        <a href="https://solidjs.com" target="_blank">
-          <img src={solidLogo} class="logo solid" alt="Solid logo" />
-        </a>
-      </div>
-      <h1>Vite + Solid</h1>
-      <div class="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count()}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p class="read-the-docs">
-        Click on the Vite and Solid logos to learn more
-      </p>
-    </>
+    <main class="app">
+      <header class="header">
+        <div class="header-ornament">&#x2699;</div>
+        <h1 class="title">Berkeley Tides</h1>
+        <p class="subtitle">Station 9414816 &mdash; San Francisco Bay</p>
+        <div class="header-rule">
+          <span class="rule-ornament">&#x2767;</span>
+        </div>
+      </header>
+      <TideChart constituents={constituents} />
+      <footer class="footer">
+        <p>Harmonic tide predictions based on 37 constituents &bull; Heights relative to mean water level</p>
+      </footer>
+    </main>
   )
 }
 

@@ -1,11 +1,14 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: #2c1e0f;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,56 +16,42 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #e8dcc8;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(180, 160, 130, 0.15) 0%, transparent 70%),
+    radial-gradient(ellipse at 80% 20%, rgba(160, 140, 110, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 80%, rgba(170, 150, 120, 0.1) 0%, transparent 60%);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* Subtle parchment noise overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  pointer-events: none;
+  z-index: 0;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+#root {
+  position: relative;
+  z-index: 1;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+a {
+  color: #6b5335;
+  text-decoration: underline;
+  text-decoration-color: rgba(107, 83, 53, 0.3);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: #2c1e0f;
+  text-decoration-color: rgba(44, 30, 15, 0.5);
 }
