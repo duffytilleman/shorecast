@@ -41,8 +41,8 @@ export default function TideChart(props: TideChartProps) {
 
     const rect = container.getBoundingClientRect()
     const width = Math.max(rect.width, 600)
-    const height = 420
-    const margin = { top: 30, right: 30, bottom: 50, left: 60 }
+    const height = Math.max(540, Math.min(860, width * 0.58))
+    const margin = { top: 26, right: 20, bottom: 52, left: 50 }
 
     const now = Date.now()
     const startTime = now - 24 * 60 * 60 * 1000

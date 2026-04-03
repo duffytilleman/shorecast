@@ -77,7 +77,7 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
       svgBox.innerHTML = ''
 
       const rect = svgBox.getBoundingClientRect()
-      const width = Math.max(rect.width, 600)
+      const width = Math.max(rect.width, 720)
 
       const sorted = [...props.constituents].sort((a, b) => b.amplitude - a.amplitude)
       const chain = sorted.slice(0, 8)
@@ -101,15 +101,15 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
       const maxDeviation = d3.max(initialWaveData, (d) => Math.abs(d.level - BERKELEY_MEAN_SEA_LEVEL_FEET)) ?? totalR
       const verticalSpanFeet = Math.max(totalR, maxDeviation) + 0.6
 
-      const pxPerFt = Math.min((width * 0.14) / totalR, 50)
-      const epicycleCX = totalR * pxPerFt + 25
+      const pxPerFt = Math.min((width * 0.17) / totalR, 58)
+      const epicycleCX = totalR * pxPerFt + 18
       const legendH = 72
       const height = Math.max(verticalSpanFeet * pxPerFt * 2 + 50 + legendH, 220)
       const cy = (height - legendH) / 2
 
-      const waveGap = 30
+      const waveGap = 24
       const waveLeft = epicycleCX + totalR * pxPerFt + waveGap
-      const waveRight = width - 15
+      const waveRight = width - 10
       const yOf = (ft: number) => cy - (ft - BERKELEY_MEAN_SEA_LEVEL_FEET) * pxPerFt
 
       const svg = d3

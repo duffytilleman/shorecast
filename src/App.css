@@ -1,30 +1,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IM+Fell+English:ital@0;1&display=swap');
 
 .app {
-  max-width: 1100px;
+  --ink: #2c1e0f;
+  --muted: #6b5335;
+  --line: rgba(139, 115, 85, 0.22);
+  --line-soft: rgba(139, 115, 85, 0.12);
+  --paper: rgba(246, 239, 223, 0.78);
+  --paper-strong: rgba(240, 230, 211, 0.92);
+  --accent: #c0392b;
+  --navy: #1a3a5c;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
-  padding: 2rem 1.5rem 3rem;
+  padding: 1rem 0.35rem 4.8rem;
 }
 
-/* ── Header ─────────────────────────────────── */
+/* Header */
 
 .header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 0.9rem;
 }
 
 .header-ornament {
   font-size: 1.4rem;
-  color: #8b7355;
+  color: var(--muted);
   opacity: 0.5;
   margin-bottom: 0.25rem;
 }
 
 .title {
   font-family: 'IM Fell English', 'Libre Baskerville', Georgia, serif;
-  font-size: 2.8rem;
+  font-size: clamp(2.35rem, 4.4vw, 3.6rem);
   font-weight: 400;
-  color: #2c1e0f;
+  color: var(--ink);
   letter-spacing: 0.06em;
   margin: 0;
   line-height: 1.2;
@@ -35,8 +44,8 @@
   font-family: 'Libre Baskerville', Georgia, serif;
   font-style: italic;
   font-size: 0.95rem;
-  color: #6b5335;
-  margin: 0.3rem 0 0;
+  color: var(--muted);
+  margin: 0.35rem 0 0;
   letter-spacing: 0.04em;
 }
 
@@ -52,7 +61,7 @@
 .header-rule::after {
   content: '';
   flex: 1;
-  max-width: 180px;
+  max-width: 260px;
   height: 1px;
   background: linear-gradient(
     to var(--dir, right),
@@ -72,29 +81,91 @@
 }
 
 .rule-ornament {
-  color: #8b7355;
+  color: var(--muted);
   font-size: 1.2rem;
   opacity: 0.6;
   line-height: 1;
 }
 
-/* ── Tide Chart Container ───────────────────── */
+/* Page shell */
+
+.graph-shell {
+  position: relative;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 236, 0.5), rgba(234, 223, 200, 0.34)),
+    var(--paper);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 14px 40px rgba(93, 70, 41, 0.08);
+}
+
+.graph-shell::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.graph-shell-plain {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.graph-shell-plain::before {
+  display: none;
+}
+
+.graph-shell-plain .tab-panel-frame {
+  min-height: 0;
+}
+
+.tab-panel-frame {
+  position: relative;
+  z-index: 1;
+  min-height: 72vh;
+}
+
+.tab-panel {
+  width: 100%;
+}
+
+/* Chart containers */
 
 .tide-chart-container {
-  background: rgba(240, 230, 211, 0.08);
-  border: 1px solid rgba(139, 115, 85, 0.2);
-  border-radius: 3px;
-  padding: 1rem 0.5rem 0;
+  background: rgba(240, 230, 211, 0.12);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.8rem 0.25rem 0;
   position: relative;
+  overflow: hidden;
+}
+
+.graph-shell-plain .tide-chart-container {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  overflow: visible;
 }
 
 .tide-chart-container::before {
   content: '';
   position: absolute;
-  inset: 3px;
-  border: 1px solid rgba(139, 115, 85, 0.1);
-  border-radius: 2px;
+  inset: 7px;
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
   pointer-events: none;
+}
+
+.graph-shell-plain .tide-chart-container::before {
+  display: none;
 }
 
 .tide-svg {
@@ -103,7 +174,7 @@
   display: block;
 }
 
-/* ── SVG Typography ─────────────────────────── */
+/* SVG Typography */
 
 .tide-svg text {
   font-family: 'Libre Baskerville', Georgia, serif;
@@ -117,38 +188,39 @@
 .tide-svg .mean-label {
   font-size: 9px;
   font-style: italic;
-  fill: #6b5335;
+  fill: var(--muted);
   opacity: 0.7;
 }
 
 .tide-svg .extrema-label {
   font-size: 10px;
   font-weight: 700;
-  fill: #2c1e0f;
+  fill: var(--ink);
 }
 
 .tide-svg .extrema-time {
   font-size: 8.5px;
   font-style: italic;
-  fill: #6b5335;
+  fill: var(--muted);
 }
 
 .tide-svg .date-label {
   font-size: 10px;
   font-style: italic;
-  fill: #6b5335;
+  fill: var(--muted);
   opacity: 0.8;
 }
 
-/* ── Tide Info Bar ──────────────────────────── */
+/* Tide info */
 
 .tide-info {
   display: flex;
   justify-content: center;
-  gap: 2.5rem;
+  gap: clamp(1rem, 3vw, 2.6rem);
+  flex-wrap: wrap;
   padding: 1.2rem 1rem;
-  border-top: 1px solid rgba(139, 115, 85, 0.15);
-  margin-top: 0.5rem;
+  border-top: 1px solid rgba(139, 115, 85, 0.14);
+  margin-top: 0.3rem;
   font-family: 'Libre Baskerville', Georgia, serif;
 }
 
@@ -162,29 +234,29 @@
 }
 
 .reading-value {
-  font-size: 1.5rem;
+  font-size: clamp(1.45rem, 2.4vw, 1.95rem);
   font-weight: 700;
-  color: #2c1e0f;
+  color: var(--ink);
   letter-spacing: 0.02em;
 }
 
 .reading-label {
   font-size: 0.7rem;
   font-style: italic;
-  color: #8b7355;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
 
 .direction-arrow {
   font-size: 1.3rem;
-  color: #c0392b;
+  color: var(--accent);
 }
 
 .direction-text {
   font-size: 0.7rem;
   font-style: italic;
-  color: #8b7355;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
@@ -192,58 +264,46 @@
 .next-label {
   font-size: 0.7rem;
   font-style: italic;
-  color: #8b7355;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
 
 .next-value {
   font-size: 1rem;
-  color: #2c1e0f;
+  color: var(--ink);
 }
 
-/* ── Harmonic Circles Section ──────────────── */
-
-.harmonic-section {
-  margin-top: 2.5rem;
-}
-
-.harmonic-title {
-  font-family: 'IM Fell English', 'Libre Baskerville', Georgia, serif;
-  font-size: 1.3rem;
-  font-weight: 400;
-  color: #2c1e0f;
-  text-align: center;
-  letter-spacing: 0.05em;
-  margin: 0 0 0.25rem;
-}
-
-.harmonic-subtitle {
-  font-family: 'Libre Baskerville', Georgia, serif;
-  font-style: italic;
-  font-size: 0.78rem;
-  color: #8b7355;
-  text-align: center;
-  margin: 0 0 1.2rem;
-  opacity: 0.8;
-  letter-spacing: 0.02em;
-}
+/* Harmonic container */
 
 .harmonic-container {
-  background: rgba(240, 230, 211, 0.08);
-  border: 1px solid rgba(139, 115, 85, 0.2);
-  border-radius: 3px;
-  padding: 1rem 0.5rem 0.5rem;
+  background: rgba(240, 230, 211, 0.12);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.8rem 0.25rem 0.4rem;
   position: relative;
+  overflow: hidden;
+}
+
+.graph-shell-plain .harmonic-container {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  overflow: visible;
 }
 
 .harmonic-container::before {
   content: '';
   position: absolute;
-  inset: 3px;
-  border: 1px solid rgba(139, 115, 85, 0.1);
-  border-radius: 2px;
+  inset: 7px;
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
   pointer-events: none;
+}
+
+.graph-shell-plain .harmonic-container::before {
+  display: none;
 }
 
 .harmonic-svg {
@@ -267,33 +327,34 @@
 .harmonic-svg .offset-label {
   font-size: 8.5px;
   font-style: italic;
-  fill: #6b5335;
+  fill: var(--muted);
   opacity: 0.75;
 }
 
 .harmonic-svg .harmonic-name {
   font-size: 10px;
   font-weight: 700;
-  fill: #2c1e0f;
+  fill: var(--ink);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .harmonic-svg .harmonic-value {
   font-size: 8.5px;
-  fill: #6b5335;
+  fill: var(--muted);
   font-style: italic;
 }
 
-/* ── Playback Controls ─────────────────────── */
+/* Playback controls */
 
 .hc-controls {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.7rem 0.75rem;
+  padding: 0.7rem 0.9rem;
   border-top: 1px solid rgba(139, 115, 85, 0.15);
   font-family: 'Libre Baskerville', Georgia, serif;
+  flex-wrap: wrap;
 }
 
 .hc-btn {
@@ -316,7 +377,7 @@
 .hc-btn-active {
   background: rgba(192, 57, 43, 0.08);
   border-color: rgba(192, 57, 43, 0.35);
-  color: #c0392b;
+  color: var(--accent);
 }
 
 .hc-play-btn {
@@ -350,7 +411,7 @@
 .hc-rate-active {
   background: rgba(26, 58, 92, 0.08);
   border-color: rgba(26, 58, 92, 0.35);
-  color: #1a3a5c;
+  color: var(--navy);
   font-weight: 700;
 }
 
@@ -371,7 +432,7 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #c0392b;
+  background: var(--accent);
   border: 2px solid #f0e6d3;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
@@ -381,7 +442,7 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #c0392b;
+  background: var(--accent);
   border: 2px solid #f0e6d3;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
@@ -390,17 +451,18 @@
 .hc-time {
   font-size: 0.68rem;
   font-style: italic;
-  color: #6b5335;
+  color: var(--muted);
   white-space: nowrap;
   min-width: 120px;
   text-align: right;
+  margin-left: auto;
 }
 
-/* ── Footer ─────────────────────────────────── */
+/* Footer */
 
 .footer {
   text-align: center;
-  margin-top: 2rem;
+  margin-top: 1.3rem;
   padding-top: 1rem;
   border-top: 1px solid rgba(139, 115, 85, 0.15);
 }
@@ -409,22 +471,78 @@
   font-family: 'Libre Baskerville', Georgia, serif;
   font-style: italic;
   font-size: 0.75rem;
-  color: #8b7355;
+  color: var(--muted);
   opacity: 0.7;
   margin: 0;
   letter-spacing: 0.03em;
 }
 
-/* ── Responsive ─────────────────────────────── */
+.page-switch-link {
+  position: fixed;
+  left: 50%;
+  bottom: 0.9rem;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgba(139, 115, 85, 0.24);
+  border-radius: 999px;
+  background: rgba(246, 239, 223, 0.92);
+  color: var(--muted);
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-size: 0.72rem;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 20px rgba(44, 30, 15, 0.1);
+  transition:
+    transform 0.16s ease,
+    background 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.page-switch-link:hover {
+  transform: translateX(-50%) translateY(-1px);
+  background: rgba(255, 248, 236, 0.98);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(44, 30, 15, 0.14);
+}
+
+/* Responsive */
 
 @media (max-width: 700px) {
+  .app {
+    max-width: 100%;
+    padding: 1rem 0.6rem 4.8rem;
+  }
+
   .title {
     font-size: 2rem;
   }
 
+  .graph-shell {
+    padding: 0.75rem;
+    border-radius: 14px;
+  }
+
+  .graph-shell-plain {
+    padding: 0;
+  }
+
+  .page-switch-link {
+    bottom: 0.75rem;
+    font-size: 0.68rem;
+    padding: 0.42rem 0.72rem;
+  }
+
   .tide-info {
     gap: 1.2rem;
-    flex-wrap: wrap;
   }
 
   .reading-value {
@@ -432,7 +550,6 @@
   }
 
   .hc-controls {
-    flex-wrap: wrap;
     justify-content: center;
   }
 
@@ -445,5 +562,6 @@
     width: 100%;
     text-align: center;
     order: 11;
+    margin-left: 0;
   }
 }
