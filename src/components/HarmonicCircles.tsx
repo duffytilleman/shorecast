@@ -8,6 +8,7 @@ interface HarmonicCirclesProps {
 
 const MS_HR = 3_600_000
 const RANGE_HRS = 12
+const SAMPLE_STEP_MINUTES = 4
 
 const CHAIN_COLORS = [
   '#1a3a5c', '#6b5335', '#2a6a4a', '#8b4513',
@@ -86,13 +87,18 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
         return BERKELEY_MEAN_SEA_LEVEL_FEET + sorted.reduce((sum, constituent) => sum + getConstituentVector(t, constituent).level, 0)
       }
 
-      const waveData: { mins: number; level: number }[] = []
-      for (let m = -RANGE_HRS * 60; m <= RANGE_HRS * 60; m += 4) {
-        waveData.push({ mins: m, level: tideFromConstituents(anchorTime + m * 60000) })
+      function buildWaveData(centerTime: number) {
+        const waveData: { mins: number; level: number }[] = []
+        for (let m = -RANGE_HRS * 60; m <= RANGE_HRS * 60; m += SAMPLE_STEP_MINUTES) {
+          waveData.push({ mins: m, level: tideFromConstituents(centerTime + m * 60000) })
+        }
+        return waveData
       }
 
+      const initialWaveData = buildWaveData(anchorTime)
+
       const totalR = chain.reduce((sum, constituent) => sum + constituent.amplitude, 0)
-      const maxDeviation = d3.max(waveData, (d) => Math.abs(d.level - BERKELEY_MEAN_SEA_LEVEL_FEET)) ?? totalR
+      const maxDeviation = d3.max(initialWaveData, (d) => Math.abs(d.level - BERKELEY_MEAN_SEA_LEVEL_FEET)) ?? totalR
       const verticalSpanFeet = Math.max(totalR, maxDeviation) + 0.6
 
       const pxPerFt = Math.min((width * 0.14) / totalR, 50)
@@ -291,24 +297,23 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
         .y1((d) => yOf(d.level))
         .curve(d3.curveBasis)
 
-      svg
+      const line = d3
+        .line<{ mins: number; level: number }>()
+        .x((d) => wxScale(d.mins))
+        .y((d) => yOf(d.level))
+        .curve(d3.curveBasis)
+
+      const waveArea = svg
         .append('path')
-        .datum(waveData)
+        .datum(initialWaveData)
         .attr('d', area)
         .attr('fill', `url(#${waveGradientId})`)
 
       // Wave path
-      svg
+      const wavePath = svg
         .append('path')
-        .datum(waveData)
-        .attr(
-          'd',
-          d3
-            .line<{ mins: number; level: number }>()
-            .x((d) => wxScale(d.mins))
-            .y((d) => yOf(d.level))
-            .curve(d3.curveBasis),
-        )
+        .datum(initialWaveData)
+        .attr('d', line)
         .attr('fill', 'none')
         .attr('stroke', '#1a3a5c')
         .attr('stroke-width', 1.5)
@@ -438,7 +443,10 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
 
       function animate() {
         const t = getTime()
-        const simMins = (t - anchorTime) / 60000
+        const waveData = buildWaveData(t)
+
+        waveArea.datum(waveData).attr('d', area)
+        wavePath.datum(waveData).attr('d', line)
 
         let x = epicycleCX
         let y = cy
@@ -479,7 +487,7 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
 
         endDot.attr('cx', fullX).attr('cy', fullY)
 
-        const waveX = Math.max(waveLeft, Math.min(waveRight, wxScale(simMins)))
+        const waveX = wxScale(0)
         connector.attr('x1', fullX).attr('y1', fullY).attr('x2', waveX).attr('y2', fullY)
         waveDot.attr('cx', waveX).attr('cy', fullY)
         timeMarker
@@ -488,7 +496,11 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
           .attr('y1', cy - verticalSpanFeet * pxPerFt)
           .attr('y2', cy + verticalSpanFeet * pxPerFt)
 
-        scrubberEl.value = String(Math.max(scrubMin, Math.min(scrubMax, t)))
+        if (mode() !== 'paused') {
+          scrubberEl.min = String(t - RANGE_HRS * MS_HR)
+          scrubberEl.max = String(t + RANGE_HRS * MS_HR)
+        }
+        scrubberEl.value = String(t)
         timeLabelEl.textContent = fmt(new Date(t))
 
         rafId = requestAnimationFrame(animate)
