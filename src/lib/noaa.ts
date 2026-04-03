@@ -95,7 +95,7 @@ export async function fetchStationData(stationId: string): Promise<StationData> 
   if (cached) return cached
 
   const lsCached = storageGet<StationData>(`station:${stationId}`)
-  if (lsCached) {
+  if (lsCached && lsCached.lat != null) {
     stationDataCache.set(stationId, lsCached)
     // Refresh in background
     fetchStationDataFromApi(stationId).then((fresh) => {
