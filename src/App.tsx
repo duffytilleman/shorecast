@@ -3,7 +3,7 @@ import './App.css'
 import TideChart from './components/TideChart'
 import HarmonicCircles from './components/HarmonicCircles'
 import StationSearch from './components/StationSearch'
-import { fetchStationData, getLastStation, setLastStation } from './lib/noaa'
+import { fetchStationData, fetchMetData, getLastStation, setLastStation } from './lib/noaa'
 
 type Route =
   | { page: 'search' }
@@ -46,6 +46,20 @@ function App() {
     const data = await fetchStationData(id)
     setLastStation(id)
     return data
+  })
+
+  const metParams = () => {
+    const d = stationData()
+    const id = stationId()
+    return d && id ? { id, lat: d.lat, lng: d.lng } : null
+  }
+
+  const [metData] = createResource(metParams, async (params) => {
+    try {
+      return await fetchMetData(params.id, params.lat, params.lng)
+    } catch {
+      return null
+    }
   })
 
   const stationName = () => {
@@ -94,7 +108,7 @@ function App() {
               <div class="tab-panel-frame">
                 <Show when={route().page === 'chart'}>
                   <section class="tab-panel">
-                    <TideChart constituents={data().constituents} meanSeaLevel={data().meanSeaLevel} />
+                    <TideChart constituents={data().constituents} meanSeaLevel={data().meanSeaLevel} metData={metData()} />
                   </section>
                 </Show>
                 <Show when={route().page === 'harmonics'}>

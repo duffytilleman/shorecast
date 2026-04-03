@@ -1,10 +1,12 @@
-import { onMount, onCleanup } from 'solid-js'
+import { onMount, onCleanup, createEffect, on } from 'solid-js'
 import * as d3 from 'd3'
 import { type Constituent, predictTide } from '../lib/tides'
+import type { MetData } from '../lib/noaa'
 
 interface TideChartProps {
   constituents: Constituent[]
   meanSeaLevel: number
+  metData?: MetData | null
 }
 
 function findHighLowTides(
@@ -37,13 +39,20 @@ export default function TideChart(props: TideChartProps) {
     onCleanup(() => observer.disconnect())
   })
 
+  // Re-render when met data arrives asynchronously
+  createEffect(on(() => props.metData, (metData) => {
+    if (metData && container) renderChart()
+  }, { defer: true }))
+
   function renderChart() {
     container.innerHTML = ''
 
     const rect = container.getBoundingClientRect()
     const width = Math.max(rect.width, 600)
     const height = Math.max(540, Math.min(860, width * 0.58))
-    const margin = { top: 26, right: 20, bottom: 52, left: 50 }
+    const hasTemp = props.metData?.temperature?.length
+    const hasWind = props.metData?.wind?.length
+    const margin = { top: hasWind ? 56 : 26, right: hasTemp ? 55 : 20, bottom: 52, left: 50 }
 
     const now = Date.now()
     const startTime = now - 24 * 60 * 60 * 1000
@@ -271,6 +280,109 @@ export default function TideChart(props: TideChartProps) {
       .attr('stroke', '#f0e6d3')
       .attr('stroke-width', 2)
 
+    // --- Temperature overlay ---
+    if (hasTemp) {
+      const tempData = props.metData!.temperature!
+      const observed = tempData.filter((d) => !d.forecast)
+      const forecast = tempData.filter((d) => d.forecast)
+      const tempExtent = d3.extent(tempData, (d) => d.value) as [number, number]
+      const tempPad = (tempExtent[1] - tempExtent[0]) * 0.2 || 5
+
+      const tempScale = d3
+        .scaleLinear()
+        .domain([tempExtent[0] - tempPad, tempExtent[1] + tempPad])
+        .range([height - margin.bottom, margin.top])
+
+      const tempLine = d3
+        .line<{ time: number; value: number }>()
+        .x((d) => xScale(d.time))
+        .y((d) => tempScale(d.value))
+        .curve(d3.curveBasis)
+
+      if (observed.length) {
+        svg
+          .append('path')
+          .datum(observed)
+          .attr('d', tempLine)
+          .attr('fill', 'none')
+          .attr('stroke', '#b35900')
+          .attr('stroke-width', 1.5)
+          .attr('stroke-dasharray', '4,3')
+          .attr('stroke-opacity', 0.6)
+      }
+
+      if (forecast.length) {
+        // Bridge: last observed + first forecast for continuity
+        const bridgeData = observed.length ? [observed[observed.length - 1], ...forecast] : forecast
+        svg
+          .append('path')
+          .datum(bridgeData)
+          .attr('d', tempLine)
+          .attr('fill', 'none')
+          .attr('stroke', '#b35900')
+          .attr('stroke-width', 1.5)
+          .attr('stroke-dasharray', '2,4')
+          .attr('stroke-opacity', 0.35)
+      }
+
+      const tempAxis = d3
+        .axisRight(tempScale)
+        .ticks(5)
+        .tickFormat((d) => `${d}°`)
+        .tickSize(4)
+
+      svg
+        .append('g')
+        .attr('class', 'axis temp-axis')
+        .attr('transform', `translate(${width - margin.right},0)`)
+        .call(tempAxis)
+        .call((g) => g.select('.domain').attr('stroke', '#b35900').attr('stroke-opacity', 0.3))
+        .call((g) => g.selectAll('.tick line').attr('stroke', '#b35900').attr('stroke-opacity', 0.2))
+        .call((g) => g.selectAll('.tick text').attr('fill', '#b35900').attr('font-size', '9px'))
+
+      svg
+        .append('text')
+        .attr('x', width - margin.right + 4)
+        .attr('y', margin.top - 8)
+        .attr('text-anchor', 'start')
+        .attr('class', 'mean-label')
+        .attr('fill', '#b35900')
+        .text('°F')
+    }
+
+    // --- Wind annotation strip ---
+    if (hasWind) {
+      const windData = props.metData!.wind!
+      // Sample observed data (6-min intervals) every ~2h, forecast (hourly) every entry
+      const windSampled = windData.filter((w, i) => w.forecast || i % 20 === 0)
+      const maxSpeed = d3.max(windData, (d) => d.speed) || 1
+
+      windSampled.forEach((w) => {
+        const x = xScale(w.time)
+        if (x < margin.left || x > width - margin.right) return
+        const y = margin.top - 14
+        const baseOpacity = 0.3 + 0.5 * (w.speed / maxSpeed)
+        const opacity = w.forecast ? baseOpacity * 0.5 : baseOpacity
+
+        svg
+          .append('path')
+          .attr('d', 'M0,-7 L2.5,3.5 L0,1.5 L-2.5,3.5 Z')
+          .attr('transform', `translate(${x},${y}) rotate(${w.directionDeg})`)
+          .attr('fill', '#6b5335')
+          .attr('fill-opacity', opacity)
+
+        svg
+          .append('text')
+          .attr('x', x)
+          .attr('y', y + 12)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '7px')
+          .attr('fill', '#6b5335')
+          .attr('fill-opacity', w.forecast ? 0.3 : 0.5)
+          .text(`${Math.round(w.speed)}`)
+      })
+    }
+
     // Axes
     const xAxis = d3
       .axisBottom(xScale)
@@ -328,6 +440,22 @@ export default function TideChart(props: TideChartProps) {
       <span class="direction-arrow">${rising ? '▲' : '▼'}</span>
       <span class="direction-text">${rising ? 'Rising' : 'Falling'}</span>
     `)
+
+    if (hasTemp) {
+      const latest = props.metData!.temperature![props.metData!.temperature!.length - 1]
+      info.append('div').attr('class', 'tide-reading').html(`
+        <span class="reading-value">${latest.value.toFixed(0)}°F</span>
+        <span class="reading-label">Air Temp</span>
+      `)
+    }
+
+    if (hasWind) {
+      const latest = props.metData!.wind![props.metData!.wind!.length - 1]
+      info.append('div').attr('class', 'tide-reading').html(`
+        <span class="reading-value">${latest.speed.toFixed(0)} kn ${latest.direction}</span>
+        <span class="reading-label">Wind</span>
+      `)
+    }
 
     const nextExtreme = extremes.find((e) => e.time > now)
     if (nextExtreme) {
