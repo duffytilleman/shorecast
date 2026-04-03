@@ -462,7 +462,7 @@ export default function TideChart(props: TideChartProps) {
       const timeStr = d3.timeFormat('%-I:%M %p')(new Date(nextExtreme.time))
       info.append('div').attr('class', 'tide-next').html(`
         <span class="next-label">Next ${nextExtreme.type === 'high' ? 'High' : 'Low'} Tide</span>
-        <span class="next-value">${nextExtreme.level.toFixed(1)} ft at ${timeStr}</span>
+        <span class="next-value">${nextExtreme.level.toFixed(2)} ft at ${timeStr}</span>
       `)
     }
   }
