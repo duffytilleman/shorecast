@@ -333,7 +333,7 @@ export default function TideChart(props: TideChartProps) {
           .attr('stroke', '#b35900')
           .attr('stroke-width', 1.5)
           .attr('stroke-dasharray', '4,3')
-          .attr('stroke-opacity', 0.6)
+          .attr('stroke-opacity', 0.85)
       }
 
       if (forecast.length) {
@@ -347,7 +347,7 @@ export default function TideChart(props: TideChartProps) {
           .attr('stroke', '#b35900')
           .attr('stroke-width', 1.5)
           .attr('stroke-dasharray', '2,4')
-          .attr('stroke-opacity', 0.35)
+          .attr('stroke-opacity', 0.5)
       }
 
       const tempAxis = d3
@@ -403,7 +403,7 @@ export default function TideChart(props: TideChartProps) {
           .attr('stroke', '#2a6b5a')
           .attr('stroke-width', 1.5)
           .attr('stroke-dasharray', '4,3')
-          .attr('stroke-opacity', 0.6)
+          .attr('stroke-opacity', 0.85)
       }
 
       if (forecastWind.length) {
@@ -416,7 +416,7 @@ export default function TideChart(props: TideChartProps) {
           .attr('stroke', '#2a6b5a')
           .attr('stroke-width', 1.5)
           .attr('stroke-dasharray', '2,4')
-          .attr('stroke-opacity', 0.35)
+          .attr('stroke-opacity', 0.5)
       }
 
       // Wind direction arrows in top strip
@@ -427,8 +427,8 @@ export default function TideChart(props: TideChartProps) {
         const x = xScale(w.time)
         if (x < margin.left || x > width - margin.right) return
         const y = margin.top - 14
-        const baseOpacity = 0.3 + 0.5 * (w.speed / maxSpeed)
-        const opacity = w.forecast ? baseOpacity * 0.5 : baseOpacity
+        const baseOpacity = 0.5 + 0.5 * (w.speed / maxSpeed)
+        const opacity = w.forecast ? baseOpacity * 0.6 : baseOpacity
 
         svg
           .append('path')
@@ -444,7 +444,7 @@ export default function TideChart(props: TideChartProps) {
           .attr('text-anchor', 'middle')
           .attr('font-size', '7px')
           .attr('fill', '#6b5335')
-          .attr('fill-opacity', w.forecast ? 0.3 : 0.5)
+          .attr('fill-opacity', w.forecast ? 0.45 : 0.7)
           .text(`${Math.round(w.speed)}`)
       })
     }
