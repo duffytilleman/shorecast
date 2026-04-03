@@ -202,6 +202,79 @@
   color: #2c1e0f;
 }
 
+/* ── Harmonic Circles Section ──────────────── */
+
+.harmonic-section {
+  margin-top: 2.5rem;
+}
+
+.harmonic-title {
+  font-family: 'IM Fell English', 'Libre Baskerville', Georgia, serif;
+  font-size: 1.3rem;
+  font-weight: 400;
+  color: #2c1e0f;
+  text-align: center;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.25rem;
+}
+
+.harmonic-subtitle {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-style: italic;
+  font-size: 0.78rem;
+  color: #8b7355;
+  text-align: center;
+  margin: 0 0 1.2rem;
+  opacity: 0.8;
+  letter-spacing: 0.02em;
+}
+
+.harmonic-container {
+  background: rgba(240, 230, 211, 0.08);
+  border: 1px solid rgba(139, 115, 85, 0.2);
+  border-radius: 3px;
+  padding: 1rem 0.5rem 0.5rem;
+  position: relative;
+}
+
+.harmonic-container::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(139, 115, 85, 0.1);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.harmonic-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.harmonic-svg text {
+  font-family: 'Libre Baskerville', Georgia, serif;
+}
+
+.harmonic-svg .harmonic-name {
+  font-size: 10px;
+  font-weight: 700;
+  fill: #2c1e0f;
+  letter-spacing: 0.04em;
+}
+
+.harmonic-svg .harmonic-value {
+  font-size: 9px;
+  fill: #6b5335;
+  font-style: italic;
+}
+
+.harmonic-svg .harmonic-legend-text {
+  font-size: 9.5px;
+  fill: #2c1e0f;
+  letter-spacing: 0.03em;
+}
+
 /* ── Footer ─────────────────────────────────── */
 
 .footer {
