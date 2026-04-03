@@ -256,23 +256,33 @@
   font-family: 'Libre Baskerville', Georgia, serif;
 }
 
+.harmonic-svg .mean-label {
+  font-size: 9px;
+  font-style: italic;
+  fill: #6f6f6f;
+  opacity: 0.78;
+}
+
+.harmonic-svg .datum-label,
+.harmonic-svg .offset-label {
+  font-size: 8.5px;
+  font-style: italic;
+  fill: #6b5335;
+  opacity: 0.75;
+}
+
 .harmonic-svg .harmonic-name {
   font-size: 10px;
   font-weight: 700;
   fill: #2c1e0f;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .harmonic-svg .harmonic-value {
-  font-size: 9px;
+  font-size: 8.5px;
   fill: #6b5335;
   font-style: italic;
-}
-
-.harmonic-svg .harmonic-legend-text {
-  font-size: 9.5px;
-  fill: #2c1e0f;
-  letter-spacing: 0.03em;
 }
 
 /* ── Playback Controls ─────────────────────── */

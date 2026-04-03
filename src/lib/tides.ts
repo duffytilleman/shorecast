@@ -1,4 +1,4 @@
-import { createTidePredictor } from '@neaps/tide-predictor'
+import { astro, constituents as constituentModels, createTidePredictor } from '@neaps/tide-predictor'
 
 export interface Constituent {
   name?: string
@@ -8,9 +8,16 @@ export interface Constituent {
   description: string
 }
 
+export interface ConstituentVector {
+  dx: number
+  dy: number
+  level: number
+  radius: number
+  theta: number
+}
+
 const RAD_PER_DEG = Math.PI / 180
-const MS_PER_HOUR = 1000 * 3600
-const BERKELEY_MEAN_SEA_LEVEL_FEET = 3.28
+export const BERKELEY_MEAN_SEA_LEVEL_FEET = 3.28
 const PACIFIC_STANDARD_TIME_OFFSET_HOURS = 8
 
 const predictorCache = new WeakMap<Constituent[], ReturnType<typeof createTidePredictor>>()
@@ -41,9 +48,39 @@ function getPredictor(constituents: Constituent[]) {
   return predictor
 }
 
+export function getConstituentVector(ts: number, constituent: Constituent): ConstituentVector {
+  const model = constituent.name ? constituentModels[constituent.name] : undefined
+
+  if (!model) {
+    const hours = ts / (1000 * 3600)
+    const theta = (constituent.speed * hours - normalizePhaseToUtc(constituent)) * RAD_PER_DEG
+    const level = constituent.amplitude * Math.cos(theta)
+    return {
+      dx: constituent.amplitude * Math.sin(theta),
+      dy: -level,
+      level,
+      radius: constituent.amplitude,
+      theta,
+    }
+  }
+
+  const astronomicalState = astro(new Date(ts))
+  const correction = model.correction(astronomicalState)
+  const radius = constituent.amplitude * correction.f
+  const theta = (model.value(astronomicalState) + correction.u - normalizePhaseToUtc(constituent)) * RAD_PER_DEG
+  const level = radius * Math.cos(theta)
+
+  return {
+    dx: radius * Math.sin(theta),
+    dy: -level,
+    level,
+    radius,
+    theta,
+  }
+}
+
 export function constit(ts: number, { amplitude, phase, speed }: Constituent) {
-  const hrs = ts / MS_PER_HOUR
-  return amplitude * Math.cos((speed * hrs - normalizePhaseToUtc({ amplitude, phase, speed, description: '' })) * RAD_PER_DEG)
+  return getConstituentVector(ts, { amplitude, phase, speed, description: '' }).level
 }
 
 export function predictTide(ts: number, constituents: Constituent[]): number {

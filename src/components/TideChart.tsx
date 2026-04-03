@@ -1,7 +1,6 @@
 import { onMount, onCleanup } from 'solid-js'
 import * as d3 from 'd3'
-import type { Constituent } from '../lib/tides'
-import { predictTide } from '../lib/tides'
+import { BERKELEY_MEAN_SEA_LEVEL_FEET, type Constituent, predictTide } from '../lib/tides'
 
 interface TideChartProps {
   constituents: Constituent[]
@@ -153,31 +152,45 @@ export default function TideChart(props: TideChartProps) {
       .attr('stroke-opacity', 0.12)
       .attr('stroke-width', 0.5)
 
-    // Zero / mean water level line
+    // Mean sea level line
     svg
       .append('line')
       .attr('x1', margin.left)
       .attr('x2', width - margin.right)
-      .attr('y1', yScale(0))
-      .attr('y2', yScale(0))
-      .attr('stroke', '#6b5335')
+      .attr('y1', yScale(BERKELEY_MEAN_SEA_LEVEL_FEET))
+      .attr('y2', yScale(BERKELEY_MEAN_SEA_LEVEL_FEET))
+      .attr('stroke', '#7d7d7d')
       .attr('stroke-width', 1)
       .attr('stroke-dasharray', '8,4')
-      .attr('stroke-opacity', 0.5)
+      .attr('stroke-opacity', 0.6)
 
     svg
       .append('text')
       .attr('x', width - margin.right - 4)
-      .attr('y', yScale(0) - 6)
+      .attr('y', yScale(BERKELEY_MEAN_SEA_LEVEL_FEET) - 6)
       .attr('text-anchor', 'end')
       .attr('class', 'mean-label')
-      .text('Mean Water Level')
+      .text('Mean Sea Level')
+
+    const datumY = yScale(0)
+    if (datumY > margin.top && datumY < height - margin.bottom) {
+      svg
+        .append('line')
+        .attr('x1', margin.left)
+        .attr('x2', width - margin.right)
+        .attr('y1', datumY)
+        .attr('y2', datumY)
+        .attr('stroke', '#8b7355')
+        .attr('stroke-width', 0.5)
+        .attr('stroke-dasharray', '2,3')
+        .attr('stroke-opacity', 0.12)
+    }
 
     // Area fill
     const area = d3
       .area<{ time: number; level: number }>()
       .x((d) => xScale(d.time))
-      .y0(yScale(0))
+      .y0(yScale(BERKELEY_MEAN_SEA_LEVEL_FEET))
       .y1((d) => yScale(d.level))
       .curve(d3.curveBasis)
 
