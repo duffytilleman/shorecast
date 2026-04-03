@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "test": "node --test src/lib/tides.test.ts",
-    "build": "tsc && vite build",
+    "typecheck": "tsc",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
