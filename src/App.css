@@ -12,7 +12,7 @@
   width: 100%;
   max-width: none;
   margin: 0 auto;
-  padding: 1rem 0.35rem 4.8rem;
+  padding: 1rem 0.35rem 1.5rem;
 }
 
 /* Header */
@@ -477,41 +477,158 @@
   letter-spacing: 0.03em;
 }
 
-.page-switch-link {
-  position: fixed;
-  left: 50%;
-  bottom: 0.9rem;
-  transform: translateX(-50%);
-  z-index: 10;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.45rem 0.8rem;
-  border: 1px solid rgba(139, 115, 85, 0.24);
-  border-radius: 999px;
-  background: rgba(246, 239, 223, 0.92);
-  color: var(--muted);
-  font-family: 'Libre Baskerville', Georgia, serif;
-  font-size: 0.72rem;
-  font-style: italic;
-  letter-spacing: 0.08em;
-  text-decoration: none;
-  text-transform: uppercase;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 6px 20px rgba(44, 30, 15, 0.1);
-  transition:
-    transform 0.16s ease,
-    background 0.16s ease,
-    color 0.16s ease,
-    box-shadow 0.16s ease;
+
+/* Station search */
+
+.station-search {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0.5rem 0.5rem 2rem;
 }
 
-.page-switch-link:hover {
-  transform: translateX(-50%) translateY(-1px);
-  background: rgba(255, 248, 236, 0.98);
+.search-prompt {
+  text-align: center;
+  margin-bottom: 1.2rem;
+}
+
+.search-heading {
+  font-family: 'IM Fell English', 'Libre Baskerville', Georgia, serif;
+  font-size: 1.3rem;
   color: var(--ink);
+  margin: 0 0 0.3rem;
+}
+
+.search-subtext {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.search-input-wrap {
+  margin-bottom: 1rem;
+}
+
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-size: 0.95rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgba(139, 115, 85, 0.35);
+  border-radius: 6px;
+  background: rgba(255, 248, 236, 0.6);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.search-input:focus {
+  border-color: rgba(139, 115, 85, 0.6);
+}
+
+.search-input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.search-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.55rem 0.75rem;
+  border-radius: 4px;
   text-decoration: none;
-  box-shadow: 0 8px 24px rgba(44, 30, 15, 0.14);
+  color: var(--ink);
+  font-family: 'Libre Baskerville', Georgia, serif;
+  transition: background 0.12s;
+}
+
+.search-result:hover {
+  background: rgba(139, 115, 85, 0.08);
+}
+
+.result-name {
+  font-size: 0.85rem;
+}
+
+.result-meta {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--muted);
+  white-space: nowrap;
+  margin-left: 1rem;
+}
+
+.search-loading,
+.search-empty {
+  text-align: center;
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding: 2rem 0;
+}
+
+/* Loading / error states */
+
+.loading-message,
+.error-message {
+  text-align: center;
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--muted);
+  padding: 4rem 1rem;
+}
+
+.error-message {
+  color: var(--accent);
+}
+
+/* Change station superscript */
+
+.change-station-link {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-size: 0.38em;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--muted);
+  opacity: 0.5;
+  text-decoration: none;
+  vertical-align: super;
+  margin-left: 0.4em;
+  letter-spacing: 0.02em;
+  transition: opacity 0.15s;
+}
+
+.change-station-link:hover {
+  opacity: 0.9;
+  text-decoration: underline;
+}
+
+/* Footer link */
+
+.footer-link {
+  color: var(--muted);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  transition: color 0.15s;
+}
+
+.footer-link:hover {
+  color: var(--ink);
 }
 
 /* Responsive */
@@ -519,7 +636,7 @@
 @media (max-width: 700px) {
   .app {
     max-width: 100%;
-    padding: 1rem 0.6rem 4.8rem;
+    padding: 1rem 0.6rem 1.5rem;
   }
 
   .title {
@@ -535,11 +652,6 @@
     padding: 0;
   }
 
-  .page-switch-link {
-    bottom: 0.75rem;
-    font-size: 0.68rem;
-    padding: 0.42rem 0.72rem;
-  }
 
   .tide-info {
     gap: 1.2rem;

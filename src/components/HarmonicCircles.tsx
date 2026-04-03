@@ -1,9 +1,10 @@
 import { onMount, onCleanup, createSignal } from 'solid-js'
 import * as d3 from 'd3'
-import { BERKELEY_MEAN_SEA_LEVEL_FEET, getConstituentVector, type Constituent } from '../lib/tides'
+import { getConstituentVector, type Constituent } from '../lib/tides'
 
 interface HarmonicCirclesProps {
   constituents: Constituent[]
+  meanSeaLevel: number
 }
 
 const MS_HR = 3_600_000
@@ -84,7 +85,7 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
       const remainder = sorted.slice(8)
 
       function tideFromConstituents(t: number) {
-        return BERKELEY_MEAN_SEA_LEVEL_FEET + sorted.reduce((sum, constituent) => sum + getConstituentVector(t, constituent).level, 0)
+        return props.meanSeaLevel + sorted.reduce((sum, constituent) => sum + getConstituentVector(t, constituent).level, 0)
       }
 
       function buildWaveData(centerTime: number) {
@@ -98,7 +99,7 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
       const initialWaveData = buildWaveData(anchorTime)
 
       const totalR = chain.reduce((sum, constituent) => sum + constituent.amplitude, 0)
-      const maxDeviation = d3.max(initialWaveData, (d) => Math.abs(d.level - BERKELEY_MEAN_SEA_LEVEL_FEET)) ?? totalR
+      const maxDeviation = d3.max(initialWaveData, (d) => Math.abs(d.level - props.meanSeaLevel)) ?? totalR
       const verticalSpanFeet = Math.max(totalR, maxDeviation) + 0.6
 
       const pxPerFt = Math.min((width * 0.17) / totalR, 58)
@@ -110,7 +111,7 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
       const waveGap = 24
       const waveLeft = epicycleCX + totalR * pxPerFt + waveGap
       const waveRight = width - 10
-      const yOf = (ft: number) => cy - (ft - BERKELEY_MEAN_SEA_LEVEL_FEET) * pxPerFt
+      const yOf = (ft: number) => cy - (ft - props.meanSeaLevel) * pxPerFt
 
       const svg = d3
         .select(svgBox)
@@ -195,7 +196,7 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
         .attr('stroke-width', 0.75)
         .attr('stroke-opacity', 0.14)
 
-      const yTicks = d3.range(-1, 2).map((n) => BERKELEY_MEAN_SEA_LEVEL_FEET + n * 2)
+      const yTicks = d3.range(-1, 2).map((n) => props.meanSeaLevel + n * 2)
       svg
         .selectAll('.harmonic-grid-line-y')
         .data(yTicks)
@@ -274,7 +275,7 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
           .attr('x', epicycleCX + 8)
           .attr('y', cy - 8)
           .attr('class', 'offset-label')
-          .text(`Z0 ${BERKELEY_MEAN_SEA_LEVEL_FEET.toFixed(2)} ft`)
+          .text(`Z0 ${props.meanSeaLevel.toFixed(2)} ft`)
       }
 
       svg
@@ -476,7 +477,7 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
         )
 
         const fullX = x + remainderVector.dx * pxPerFt
-        const fullLevel = BERKELEY_MEAN_SEA_LEVEL_FEET + chain.reduce((sum, constituent) => sum + getConstituentVector(t, constituent).level, 0) + remainderVector.level
+        const fullLevel = props.meanSeaLevel + chain.reduce((sum, constituent) => sum + getConstituentVector(t, constituent).level, 0) + remainderVector.level
         const fullY = yOf(fullLevel)
 
         remainderArm

@@ -51,30 +51,36 @@ const fixtureCsv = readFileSync(
   'utf8',
 )
 
-const constituentCsv = readFileSync(
-  new URL('../../data/constituents/9414816-berkeley.csv', import.meta.url),
-  'utf8',
+const harconJson = JSON.parse(
+  readFileSync(
+    new URL('../fixtures/noaa-9414816-harcon.json', import.meta.url),
+    'utf8',
+  ),
+)
+
+const datumsJson = JSON.parse(
+  readFileSync(
+    new URL('../fixtures/noaa-9414816-datums.json', import.meta.url),
+    'utf8',
+  ),
 )
 
 const fixture = parseFixture(fixtureCsv)
 
-const constituents: Constituent[] = constituentCsv
-  .trim()
-  .split('\n')
-  .slice(1)
-  .map((line) => {
-    const [_, name, amplitude, phase, speed, description] = line.split(',')
-    return {
-      name,
-      amplitude: Number(amplitude),
-      phase: Number(phase),
-      speed: Number(speed),
-      description,
-    }
-  })
+const constituents: Constituent[] = harconJson.HarmonicConstituents.map((h: any) => ({
+  name: h.name,
+  amplitude: h.amplitude,
+  phase: h.phase_GMT,
+  speed: h.speed,
+  description: h.description,
+}))
+
+const msl = datumsJson.datums.find((d: any) => d.name === 'MSL').value
+const mllw = datumsJson.datums.find((d: any) => d.name === 'MLLW').value
+const meanSeaLevel = msl - mllw
 
 function predictionFor(row: FixtureRow) {
-  return predictTide(parsePacificDateTime(row.date, row.time), constituents)
+  return predictTide(parsePacificDateTime(row.date, row.time), constituents, meanSeaLevel)
 }
 
 test('predictTide matches known NOAA hourly predictions at representative timestamps', () => {

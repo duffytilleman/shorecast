@@ -1,9 +1,10 @@
 import { onMount, onCleanup } from 'solid-js'
 import * as d3 from 'd3'
-import { BERKELEY_MEAN_SEA_LEVEL_FEET, type Constituent, predictTide } from '../lib/tides'
+import { type Constituent, predictTide } from '../lib/tides'
 
 interface TideChartProps {
   constituents: Constituent[]
+  meanSeaLevel: number
 }
 
 function findHighLowTides(
@@ -51,11 +52,11 @@ export default function TideChart(props: TideChartProps) {
 
     const data: { time: number; level: number }[] = []
     for (let t = startTime; t <= endTime; t += step) {
-      data.push({ time: t, level: predictTide(t, props.constituents) })
+      data.push({ time: t, level: predictTide(t, props.constituents, props.meanSeaLevel) })
     }
 
-    const currentLevel = predictTide(now, props.constituents)
-    const recentLevel = predictTide(now - 6 * 60 * 1000, props.constituents)
+    const currentLevel = predictTide(now, props.constituents, props.meanSeaLevel)
+    const recentLevel = predictTide(now - 6 * 60 * 1000, props.constituents, props.meanSeaLevel)
     const rising = currentLevel > recentLevel
 
     const extremes = findHighLowTides(data)
@@ -157,8 +158,8 @@ export default function TideChart(props: TideChartProps) {
       .append('line')
       .attr('x1', margin.left)
       .attr('x2', width - margin.right)
-      .attr('y1', yScale(BERKELEY_MEAN_SEA_LEVEL_FEET))
-      .attr('y2', yScale(BERKELEY_MEAN_SEA_LEVEL_FEET))
+      .attr('y1', yScale(props.meanSeaLevel))
+      .attr('y2', yScale(props.meanSeaLevel))
       .attr('stroke', '#7d7d7d')
       .attr('stroke-width', 1)
       .attr('stroke-dasharray', '8,4')
@@ -167,7 +168,7 @@ export default function TideChart(props: TideChartProps) {
     svg
       .append('text')
       .attr('x', width - margin.right - 4)
-      .attr('y', yScale(BERKELEY_MEAN_SEA_LEVEL_FEET) - 6)
+      .attr('y', yScale(props.meanSeaLevel) - 6)
       .attr('text-anchor', 'end')
       .attr('class', 'mean-label')
       .text('Mean Sea Level')
@@ -190,7 +191,7 @@ export default function TideChart(props: TideChartProps) {
     const area = d3
       .area<{ time: number; level: number }>()
       .x((d) => xScale(d.time))
-      .y0(yScale(BERKELEY_MEAN_SEA_LEVEL_FEET))
+      .y0(yScale(props.meanSeaLevel))
       .y1((d) => yScale(d.level))
       .curve(d3.curveBasis)
 
