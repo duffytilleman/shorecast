@@ -194,7 +194,7 @@ async function fetchForecast(lat: number, lng: number): Promise<MetData> {
 
   const periods = forecastData.properties?.periods ?? []
   const now = Date.now()
-  const cutoff = now + 24 * 60 * 60 * 1000
+  const cutoff = now + 72 * 60 * 60 * 1000
 
   const wind: WindObservation[] = []
   const temperature: TempObservation[] = []
@@ -237,7 +237,7 @@ export async function fetchMetData(stationId: string, lat: number, lng: number):
   }
 
   const now = Date.now()
-  const beginMs = now - 24 * 60 * 60 * 1000
+  const beginMs = now - 12 * 60 * 60 * 1000
   const base = `${COOPS_API}?begin_date=${encodeURIComponent(formatCoopsDate(beginMs))}&end_date=${encodeURIComponent(formatCoopsDate(now))}&station=${stationId}&units=english&time_zone=gmt&format=json`
 
   console.debug(`[met] fetching wind + temperature for station ${stationId}`)

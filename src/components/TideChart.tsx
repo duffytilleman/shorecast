@@ -55,8 +55,8 @@ export default function TideChart(props: TideChartProps) {
     const margin = { top: hasWind ? 56 : 26, right: hasTemp ? 55 : 20, bottom: 52, left: 50 }
 
     const now = Date.now()
-    const startTime = now - 24 * 60 * 60 * 1000
-    const endTime = now + 24 * 60 * 60 * 1000
+    const startTime = now - 12 * 60 * 60 * 1000
+    const endTime = now + 72 * 60 * 60 * 1000
     const step = 6 * 60 * 1000 // 6 minutes
 
     const data: { time: number; level: number }[] = []
