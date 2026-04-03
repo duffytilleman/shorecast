@@ -235,6 +235,48 @@ export default function TideChart(props: TideChartProps) {
       .attr('d', area)
       .attr('fill', 'url(#tide-area-gradient)')
 
+    // Highlight: tide above MSL and temp > 70°F
+    if (hasTemp) {
+      const tempData = props.metData!.temperature!
+      const highlightData = data.map((d) => {
+        if (d.level <= props.meanSeaLevel) return { ...d, highlight: false }
+        // Find nearest temp within 1.5 hours
+        let best = tempData[0], bestDist = Math.abs(tempData[0].time - d.time)
+        for (let i = 1; i < tempData.length; i++) {
+          const dist = Math.abs(tempData[i].time - d.time)
+          if (dist < bestDist) { best = tempData[i]; bestDist = dist }
+          else if (dist > bestDist) break
+        }
+        return { ...d, highlight: bestDist < 90 * 60 * 1000 && best.value >= 70 }
+      })
+
+      // Build contiguous segments where highlight is true
+      const segments: { time: number; level: number }[][] = []
+      let current: { time: number; level: number }[] = []
+      for (const d of highlightData) {
+        if (d.highlight) {
+          current.push(d)
+        } else if (current.length) {
+          segments.push(current)
+          current = []
+        }
+      }
+      if (current.length) segments.push(current)
+
+      segments.forEach((seg) => {
+        const x0 = xScale(seg[0].time)
+        const x1 = xScale(seg[seg.length - 1].time)
+        svg
+          .append('rect')
+          .attr('x', x0)
+          .attr('y', margin.top)
+          .attr('width', x1 - x0)
+          .attr('height', height - margin.top - margin.bottom)
+          .attr('fill', '#e8a735')
+          .attr('fill-opacity', 0.12)
+      })
+    }
+
     // Tide line
     const line = d3
       .line<{ time: number; level: number }>()
