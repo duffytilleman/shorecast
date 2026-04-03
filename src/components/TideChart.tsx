@@ -375,10 +375,51 @@ export default function TideChart(props: TideChartProps) {
         .text('°F')
     }
 
-    // --- Wind annotation strip ---
+    // --- Wind speed line ---
     if (hasWind) {
       const windData = props.metData!.wind!
-      // Sample observed data (6-min intervals) every ~2h, forecast (hourly) every entry
+      const observedWind = windData.filter((d) => !d.forecast)
+      const forecastWind = windData.filter((d) => d.forecast)
+      const windMax = d3.max(windData, (d) => d.speed) || 1
+      const windPad = windMax * 0.2 || 5
+
+      const windScale = d3
+        .scaleLinear()
+        .domain([0, windMax + windPad])
+        .range([height - margin.bottom, margin.top])
+
+      const windLine = d3
+        .line<{ time: number; speed: number }>()
+        .x((d) => xScale(d.time))
+        .y((d) => windScale(d.speed))
+        .curve(d3.curveBasis)
+
+      if (observedWind.length) {
+        svg
+          .append('path')
+          .datum(observedWind)
+          .attr('d', windLine)
+          .attr('fill', 'none')
+          .attr('stroke', '#2a6b5a')
+          .attr('stroke-width', 1.5)
+          .attr('stroke-dasharray', '4,3')
+          .attr('stroke-opacity', 0.6)
+      }
+
+      if (forecastWind.length) {
+        const bridgeData = observedWind.length ? [observedWind[observedWind.length - 1], ...forecastWind] : forecastWind
+        svg
+          .append('path')
+          .datum(bridgeData)
+          .attr('d', windLine)
+          .attr('fill', 'none')
+          .attr('stroke', '#2a6b5a')
+          .attr('stroke-width', 1.5)
+          .attr('stroke-dasharray', '2,4')
+          .attr('stroke-opacity', 0.35)
+      }
+
+      // Wind direction arrows in top strip
       const windSampled = windData.filter((w, i) => w.forecast || i % 20 === 0)
       const maxSpeed = d3.max(windData, (d) => d.speed) || 1
 
