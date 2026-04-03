@@ -56,7 +56,8 @@ export default function TideChart(props: TideChartProps) {
     const height = Math.max(540, Math.min(860, containerWidth * 0.58))
     const hasTemp = props.metData?.temperature?.length
     const hasWind = props.metData?.wind?.length
-    const margin = { top: hasWind ? 56 : 26, right: hasTemp ? 55 : 20, bottom: 52, left: 50 }
+    const leftExtra = (hasTemp ? 35 : 0) + (hasWind ? 35 : 0)
+    const margin = { top: hasWind ? 56 : 26, right: 20, bottom: 52, left: 50 + leftExtra }
 
     const now = Date.now()
     const startTime = now - 12 * 60 * 60 * 1000
@@ -392,8 +393,9 @@ export default function TideChart(props: TideChartProps) {
           .attr('stroke-opacity', 0.5)
       }
 
+      const tempAxisX = margin.left - (hasWind ? 35 : 0) - 35
       const tempAxis = d3
-        .axisRight(tempScale)
+        .axisLeft(tempScale)
         .ticks(5)
         .tickFormat((d) => `${d}°`)
         .tickSize(4)
@@ -401,7 +403,7 @@ export default function TideChart(props: TideChartProps) {
       svg
         .append('g')
         .attr('class', 'axis temp-axis')
-        .attr('transform', `translate(${width - margin.right},0)`)
+        .attr('transform', `translate(${tempAxisX},0)`)
         .call(tempAxis)
         .call((g) => g.select('.domain').attr('stroke', '#b35900').attr('stroke-opacity', 0.3))
         .call((g) => g.selectAll('.tick line').attr('stroke', '#b35900').attr('stroke-opacity', 0.2))
@@ -409,9 +411,9 @@ export default function TideChart(props: TideChartProps) {
 
       svg
         .append('text')
-        .attr('x', width - margin.right + 4)
+        .attr('x', tempAxisX)
         .attr('y', margin.top - 8)
-        .attr('text-anchor', 'start')
+        .attr('text-anchor', 'middle')
         .attr('class', 'mean-label')
         .attr('fill', '#b35900')
         .text('°F')
@@ -460,6 +462,31 @@ export default function TideChart(props: TideChartProps) {
           .attr('stroke-dasharray', '2,4')
           .attr('stroke-opacity', 0.5)
       }
+
+      const windAxisX = margin.left - 35
+      const windAxis = d3
+        .axisLeft(windScale)
+        .ticks(5)
+        .tickFormat((d) => `${d}`)
+        .tickSize(4)
+
+      svg
+        .append('g')
+        .attr('class', 'axis wind-axis')
+        .attr('transform', `translate(${windAxisX},0)`)
+        .call(windAxis)
+        .call((g) => g.select('.domain').attr('stroke', '#2a6b5a').attr('stroke-opacity', 0.3))
+        .call((g) => g.selectAll('.tick line').attr('stroke', '#2a6b5a').attr('stroke-opacity', 0.2))
+        .call((g) => g.selectAll('.tick text').attr('fill', '#2a6b5a').attr('font-size', '9px'))
+
+      svg
+        .append('text')
+        .attr('x', windAxisX)
+        .attr('y', margin.top - 8)
+        .attr('text-anchor', 'middle')
+        .attr('class', 'mean-label')
+        .attr('fill', '#2a6b5a')
+        .text('kn')
 
       // Wind direction arrows in top strip
       const windSampled = windData.filter((w, i) => w.forecast || i % 20 === 0)
