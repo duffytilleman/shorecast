@@ -174,6 +174,13 @@
   flex-direction: column;
 }
 
+.tide-scroll {
+  scrollbar-width: none;
+}
+.tide-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .tide-chart-container::before {
   content: '';
   position: absolute;
