@@ -44,8 +44,17 @@ export function getLastStation(): string | null {
   return storageGet<string>('lastStation')
 }
 
+const MAX_RECENT = 10
+
+export function getRecentStations(): string[] {
+  return storageGet<string[]>('recentStations') ?? []
+}
+
 export function setLastStation(id: string) {
   storageSet('lastStation', id)
+  const recent = getRecentStations().filter((s) => s !== id)
+  recent.unshift(id)
+  storageSet('recentStations', recent.slice(0, MAX_RECENT))
 }
 
 // --- Station list ---

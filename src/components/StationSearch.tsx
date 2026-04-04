@@ -1,5 +1,5 @@
 import { createSignal, onMount, For, Show } from 'solid-js'
-import { fetchStations, type Station } from '../lib/noaa'
+import { fetchStations, getRecentStations, type Station } from '../lib/noaa'
 
 const MAX_RESULTS = 50
 
@@ -17,9 +17,16 @@ export default function StationSearch() {
     setLoading(false)
   })
 
+  const recents = () => {
+    const recentIds = getRecentStations()
+    if (!recentIds.length) return []
+    const stationMap = new Map(stations().map((s) => [s.id, s]))
+    return recentIds.map((id) => stationMap.get(id)).filter((s): s is Station => !!s)
+  }
+
   const filtered = () => {
     const q = query().toLowerCase().trim()
-    if (!q) return []
+    if (!q) return recents()
     return stations()
       .filter(
         (s) =>
@@ -54,6 +61,9 @@ export default function StationSearch() {
 
       <Show when={!loading()}>
         <div class="search-results">
+          <Show when={!query().trim() && recents().length > 0}>
+            <p class="search-empty" style="opacity: 0.6; font-style: italic">Recent stations</p>
+          </Show>
           <For each={filtered()}>
             {(station) => (
               <a href={`#/${station.id}`} class="search-result">
