@@ -53,7 +53,7 @@ export default function TideChart(props: TideChartProps) {
 
     const rect = container.getBoundingClientRect()
     const containerWidth = Math.max(rect.width, 600)
-    const height = Math.max(540, Math.min(860, containerWidth * 0.58))
+    const height = Math.max(300, rect.height || 540)
     const hasTemp = props.metData?.temperature?.length
     const hasWind = props.metData?.wind?.length
     const leftExtra = (hasTemp ? 35 : 0) + (hasWind ? 35 : 0)
@@ -147,17 +147,6 @@ export default function TideChart(props: TideChartProps) {
       .attr('in', 'SourceGraphic')
       .attr('in2', 'mono')
       .attr('mode', 'multiply')
-
-    // Chart background with paper texture
-    svg
-      .append('rect')
-      .attr('x', margin.left)
-      .attr('y', margin.top)
-      .attr('width', width - margin.left - margin.right)
-      .attr('height', height - margin.top - margin.bottom)
-      .attr('fill', '#f0e6d3')
-      .attr('filter', 'url(#paper-grain)')
-      .attr('opacity', 0.3)
 
     // Grid lines — faint, like ruled ledger paper
     const yTicks = yScale.ticks(6)

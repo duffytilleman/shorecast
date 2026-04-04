@@ -72,7 +72,6 @@ function App() {
   return (
     <main class="app">
       <header class="header">
-        <div class="header-ornament">&#x2699;</div>
         <Show when={stationId()} fallback={<h1 class="title">Tides</h1>}>
           <h1 class="title">
             {stationName() ?? 'Tides'}
