@@ -72,9 +72,9 @@ function App() {
   return (
     <main class="app">
       <header class="header">
-        <Show when={stationId()} fallback={<h1 class="title">Tides</h1>}>
+        <Show when={stationId()} fallback={<h1 class="title">Shorecast</h1>}>
           <h1 class="title">
-            {stationName() ?? 'Tides'}
+            {stationName() ?? 'Shorecast'}
             <a href="#/search" class="change-station-link" title="Change station">&#x21C6;</a>
           </h1>
           <p class="subtitle">Station {stationId()}</p>

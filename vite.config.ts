@@ -8,8 +8,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Tides',
-        short_name: 'Tides',
+        name: 'Shorecast',
+        short_name: 'Shorecast',
         description: 'NOAA tide predictions and weather for US coastal stations',
         theme_color: '#e8dcc8',
         background_color: '#e8dcc8',

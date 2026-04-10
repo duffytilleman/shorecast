@@ -1,4 +1,4 @@
-const PREFIX = 'tides:'
+const PREFIX = 'shorecast:'
 
 export function storageGet<T>(key: string): T | null {
   try {

@@ -164,7 +164,7 @@ function formatCoopsDate(ms: number): string {
 }
 
 const NWS_API = 'https://api.weather.gov'
-const NWS_HEADERS = { 'User-Agent': 'tides-app (github.com)' }
+const NWS_HEADERS = { 'User-Agent': 'shorecast-app (github.com)' }
 const FORECAST_CACHE_TTL = 30 * 60 * 1000
 
 const compassToDeg: Record<string, number> = {

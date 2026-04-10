@@ -1,6 +1,6 @@
 ## Project
 
-SolidJS + D3 web app for visualizing NOAA tide predictions, weather overlays (wind/temperature), and tidal harmonic constituents for US coastal stations.
+Shorecast — SolidJS + D3 web app for visualizing NOAA tide predictions, weather overlays (wind/temperature), and tidal harmonic constituents for US coastal stations.
 
 ## Key files
 
