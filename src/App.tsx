@@ -1,4 +1,4 @@
-import { createSignal, createResource, onCleanup, onMount, Show } from 'solid-js'
+import { createSignal, createResource, createEffect, onCleanup, onMount, Show } from 'solid-js'
 import './App.css'
 import TideChart from './components/TideChart'
 import HarmonicCircles from './components/HarmonicCircles'
@@ -68,6 +68,11 @@ function App() {
     // stationName from API is just the ID fallback; get a proper name from stations list if needed
     return data.stationName !== stationId() ? data.stationName : null
   }
+
+  createEffect(() => {
+    const name = stationName()
+    document.title = name ? `${name} — Shorecast` : 'Shorecast'
+  })
 
   return (
     <main class="app">
