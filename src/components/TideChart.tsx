@@ -449,11 +449,13 @@ export default function TideChart(props: TideChartProps) {
           .append('path')
           .datum(observed)
           .attr('d', tempLine)
+          .attr('class', 'temp-line')
           .attr('fill', 'none')
           .attr('stroke', '#b35900')
           .attr('stroke-width', 1.5)
           .attr('stroke-dasharray', '4,3')
           .attr('stroke-opacity', 0.85)
+          .style('transition', 'stroke-width 0.15s, stroke-opacity 0.15s')
       }
 
       if (forecast.length) {
@@ -463,11 +465,13 @@ export default function TideChart(props: TideChartProps) {
           .append('path')
           .datum(bridgeData)
           .attr('d', tempLine)
+          .attr('class', 'temp-line')
           .attr('fill', 'none')
           .attr('stroke', '#b35900')
           .attr('stroke-width', 1.5)
           .attr('stroke-dasharray', '2,4')
           .attr('stroke-opacity', 0.5)
+          .style('transition', 'stroke-width 0.15s, stroke-opacity 0.15s')
       }
 
       tempAxisX = margin.left - (hasWind ? 35 : 0) - 35
@@ -526,11 +530,13 @@ export default function TideChart(props: TideChartProps) {
           .append('path')
           .datum(observedWind)
           .attr('d', windLine)
+          .attr('class', 'wind-line')
           .attr('fill', 'none')
           .attr('stroke', '#2a6b5a')
           .attr('stroke-width', 1.5)
           .attr('stroke-dasharray', '4,3')
           .attr('stroke-opacity', 0.85)
+          .style('transition', 'stroke-width 0.15s, stroke-opacity 0.15s')
       }
 
       if (forecastWind.length) {
@@ -539,11 +545,13 @@ export default function TideChart(props: TideChartProps) {
           .append('path')
           .datum(bridgeData)
           .attr('d', windLine)
+          .attr('class', 'wind-line')
           .attr('fill', 'none')
           .attr('stroke', '#2a6b5a')
           .attr('stroke-width', 1.5)
           .attr('stroke-dasharray', '2,4')
           .attr('stroke-opacity', 0.5)
+          .style('transition', 'stroke-width 0.15s, stroke-opacity 0.15s')
       }
 
       windAxisX = margin.left - 35
@@ -601,6 +609,93 @@ export default function TideChart(props: TideChartProps) {
       })
     }
 
+    // --- Hover highlight for temp/wind overlays ---
+    function highlightOverlay(lineClass: string, axisClass: string) {
+      svg.selectAll(`.${lineClass}`).each(function () {
+        const el = d3.select(this)
+        el.attr('data-orig-width', el.attr('stroke-width'))
+          .attr('data-orig-opacity', el.attr('stroke-opacity'))
+          .attr('stroke-width', 3)
+          .attr('stroke-opacity', 1)
+      })
+      const axis = svg.select(`.${axisClass}`)
+      axis.select('.domain').attr('data-orig-opacity', axis.select('.domain').attr('stroke-opacity'))
+        .attr('stroke-opacity', 0.8).attr('stroke-width', 2)
+      axis.selectAll('.tick line').each(function () {
+        const el = d3.select(this)
+        el.attr('data-orig-opacity', el.attr('stroke-opacity'))
+          .attr('stroke-opacity', 0.6)
+      })
+      axis.selectAll('.tick text').each(function () {
+        const el = d3.select(this)
+        el.attr('data-orig-weight', el.attr('font-weight'))
+          .attr('font-weight', '600')
+      })
+      // Bold corresponding threshold lines
+      const thresholdClass = lineClass.replace('-line', '-threshold')
+      svg.selectAll(`.${thresholdClass}`).each(function () {
+        const el = d3.select(this)
+        el.attr('data-orig-width', el.attr('stroke-width'))
+          .attr('data-orig-opacity', el.attr('stroke-opacity'))
+          .attr('stroke-width', 2)
+          .attr('stroke-opacity', 0.8)
+      })
+    }
+
+    function unhighlightOverlay(lineClass: string, axisClass: string) {
+      svg.selectAll(`.${lineClass}`).each(function () {
+        const el = d3.select(this)
+        el.attr('stroke-width', el.attr('data-orig-width'))
+          .attr('stroke-opacity', el.attr('data-orig-opacity'))
+      })
+      const axis = svg.select(`.${axisClass}`)
+      axis.select('.domain').attr('stroke-opacity', axis.select('.domain').attr('data-orig-opacity'))
+        .attr('stroke-width', 1)
+      axis.selectAll('.tick line').each(function () {
+        const el = d3.select(this)
+        el.attr('stroke-opacity', el.attr('data-orig-opacity'))
+      })
+      axis.selectAll('.tick text').each(function () {
+        const el = d3.select(this)
+        el.attr('font-weight', el.attr('data-orig-weight'))
+      })
+      const thresholdClass = lineClass.replace('-line', '-threshold')
+      svg.selectAll(`.${thresholdClass}`).each(function () {
+        const el = d3.select(this)
+        el.attr('stroke-width', el.attr('data-orig-width'))
+          .attr('stroke-opacity', el.attr('data-orig-opacity'))
+      })
+    }
+
+    function bindOverlayHover(targetSel: d3.Selection<any, any, any, any>, lineClass: string, axisClass: string, clickable = false) {
+      targetSel
+        .style('cursor', clickable ? 'pointer' : 'default')
+        .on('mouseenter', () => highlightOverlay(lineClass, axisClass))
+        .on('mouseleave', () => unhighlightOverlay(lineClass, axisClass))
+      if (clickable) {
+        targetSel.on('click', () => props.onOpenSettings?.())
+      }
+    }
+
+    // Bind hover on axes with wider invisible hit targets
+    function addAxisHitTarget(axisX: number, lineClass: string, axisClass: string) {
+      const hitTarget = svg.append('rect')
+        .attr('x', axisX - 16)
+        .attr('y', margin.top)
+        .attr('width', 32)
+        .attr('height', height - margin.top - margin.bottom)
+        .attr('fill', 'transparent')
+        .attr('pointer-events', 'all')
+      bindOverlayHover(hitTarget, lineClass, axisClass, true)
+    }
+
+    if (hasTemp) {
+      addAxisHitTarget(tempAxisX, 'temp-line', 'temp-axis')
+    }
+    if (hasWind) {
+      addAxisHitTarget(windAxisX, 'wind-line', 'wind-axis')
+    }
+
     // Axes
     const xAxis = d3
       .axisBottom(xScale)
@@ -653,11 +748,11 @@ export default function TideChart(props: TideChartProps) {
 
       function drawMarker(
         yPos: number, axisX: number, label: string, color: string,
-        value: number, tickValues: number[],
+        value: number, tickValues: number[], thresholdClass?: string,
       ) {
         if (yPos < margin.top || yPos > height - margin.bottom) return
         // Dashed line across chart
-        svg.append('line')
+        const thLine = svg.append('line')
           .attr('x1', margin.left)
           .attr('x2', width - margin.right)
           .attr('y1', yPos)
@@ -666,6 +761,7 @@ export default function TideChart(props: TideChartProps) {
           .attr('stroke-width', 1)
           .attr('stroke-dasharray', '4,4')
           .attr('stroke-opacity', 0.4)
+        if (thresholdClass) thLine.attr('class', thresholdClass)
 
         // Triangle marker on the axis
         const g = svg.append('g')
@@ -719,10 +815,10 @@ export default function TideChart(props: TideChartProps) {
       if (tempScale && th) {
         const tempTicks = tempScale.ticks(5)
         if (th.tempMin != null) {
-          drawMarker(tempScale(th.tempMin), tempAxisX, `${th.tempMin}°`, '#b35900', th.tempMin, tempTicks)
+          drawMarker(tempScale(th.tempMin), tempAxisX, `${th.tempMin}°`, '#b35900', th.tempMin, tempTicks, 'temp-threshold')
         }
         if (th.tempMax != null) {
-          drawMarker(tempScale(th.tempMax), tempAxisX, `${th.tempMax}°`, '#b35900', th.tempMax, tempTicks)
+          drawMarker(tempScale(th.tempMax), tempAxisX, `${th.tempMax}°`, '#b35900', th.tempMax, tempTicks, 'temp-threshold')
         }
       }
 
@@ -730,10 +826,10 @@ export default function TideChart(props: TideChartProps) {
       if (windScale && th) {
         const windTicks = windScale.ticks(5)
         if (th.windMin != null) {
-          drawMarker(windScale(th.windMin), windAxisX, `${th.windMin}`, '#2a6b5a', th.windMin, windTicks)
+          drawMarker(windScale(th.windMin), windAxisX, `${th.windMin}`, '#2a6b5a', th.windMin, windTicks, 'wind-threshold')
         }
         if (th.windMax != null) {
-          drawMarker(windScale(th.windMax), windAxisX, `${th.windMax}`, '#2a6b5a', th.windMax, windTicks)
+          drawMarker(windScale(th.windMax), windAxisX, `${th.windMax}`, '#2a6b5a', th.windMax, windTicks, 'wind-threshold')
         }
       }
     }
@@ -837,6 +933,32 @@ export default function TideChart(props: TideChartProps) {
           .attr('width', tooltipW)
           .attr('height', tooltipH)
       })
+
+    // Invisible wider hit-targets for temp/wind lines and thresholds (on top of crosshair overlay)
+    for (const [lineClass, axisClass] of [['temp-line', 'temp-axis'], ['wind-line', 'wind-axis']] as const) {
+      svg.selectAll(`.${lineClass}`).each(function () {
+        const hitTarget = svg.append('path')
+          .attr('d', d3.select(this).attr('d'))
+          .attr('fill', 'none')
+          .attr('stroke', 'transparent')
+          .attr('stroke-width', 12)
+          .attr('pointer-events', 'stroke')
+        bindOverlayHover(hitTarget, lineClass, axisClass)
+      })
+      const thresholdClass = lineClass.replace('-line', '-threshold')
+      svg.selectAll(`.${thresholdClass}`).each(function () {
+        const orig = d3.select(this)
+        const hitTarget = svg.append('line')
+          .attr('x1', orig.attr('x1'))
+          .attr('x2', orig.attr('x2'))
+          .attr('y1', orig.attr('y1'))
+          .attr('y2', orig.attr('y2'))
+          .attr('stroke', 'transparent')
+          .attr('stroke-width', 12)
+          .attr('pointer-events', 'stroke')
+        bindOverlayHover(hitTarget, lineClass, axisClass, true)
+      })
+    }
 
     // Scroll to "now" on first render, preserve position on re-renders
     const scrollEl = scrollWrapper.node()!
