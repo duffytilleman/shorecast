@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --test src/lib/tides.test.ts",
+    "test": "node --test src/lib/*.test.ts",
     "typecheck": "tsc",
     "build": "vite build",
     "preview": "vite preview"

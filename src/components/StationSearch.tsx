@@ -1,4 +1,5 @@
 import { createSignal, onMount, For, Show } from 'solid-js'
+import { formatStationName } from '../lib/format'
 import { fetchStations, getRecentStations, type Station } from '../lib/noaa'
 
 const MAX_RESULTS = 50
@@ -67,7 +68,7 @@ export default function StationSearch() {
           <For each={filtered()}>
             {(station) => (
               <a href={`/${station.id}`} class="search-result">
-                <span class="result-name">{station.name}</span>
+                <span class="result-name">{formatStationName(station.name)}</span>
                 <span class="result-meta">
                   {station.state ? `${station.state} — ` : ''}
                   {station.id}
