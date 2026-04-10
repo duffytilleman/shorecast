@@ -10,6 +10,7 @@ interface TideChartProps {
   metData?: MetData | null
   thresholds?: HighlightThresholds
   onOpenSettings?: () => void
+  onUpdateThreshold?: (key: keyof HighlightThresholds, value: number) => void
 }
 
 function findHighLowTides(
@@ -611,6 +612,7 @@ export default function TideChart(props: TideChartProps) {
 
     // --- Hover highlight for temp/wind overlays ---
     function highlightOverlay(lineClass: string, axisClass: string) {
+      if (!lineClass) return
       svg.selectAll(`.${lineClass}`).each(function () {
         const el = d3.select(this)
         el.attr('data-orig-width', el.attr('stroke-width'))
@@ -643,6 +645,7 @@ export default function TideChart(props: TideChartProps) {
     }
 
     function unhighlightOverlay(lineClass: string, axisClass: string) {
+      if (!lineClass) return
       svg.selectAll(`.${lineClass}`).each(function () {
         const el = d3.select(this)
         el.attr('stroke-width', el.attr('data-orig-width'))
@@ -749,6 +752,7 @@ export default function TideChart(props: TideChartProps) {
       function drawMarker(
         yPos: number, axisX: number, label: string, color: string,
         value: number, tickValues: number[], thresholdClass?: string,
+        thresholdKey?: string,
       ) {
         if (yPos < margin.top || yPos > height - margin.bottom) return
         // Dashed line across chart
@@ -762,12 +766,13 @@ export default function TideChart(props: TideChartProps) {
           .attr('stroke-dasharray', '4,4')
           .attr('stroke-opacity', 0.4)
         if (thresholdClass) thLine.attr('class', thresholdClass)
+        if (thresholdKey) thLine.attr('data-threshold-key', thresholdKey)
 
         // Triangle marker on the axis
         const g = svg.append('g')
           .attr('class', 'threshold-marker')
-          .style('cursor', 'pointer')
-          .on('click', () => openSettings?.())
+          .style('cursor', 'ns-resize')
+        if (thresholdKey) g.attr('data-threshold-key', thresholdKey)
 
         g.append('path')
           .attr('d', 'M0,-5 L8,0 L0,5 Z')
@@ -788,7 +793,7 @@ export default function TideChart(props: TideChartProps) {
             .text(label)
         }
 
-        // Invisible wider click target
+        // Invisible wider click/drag target
         g.append('rect')
           .attr('x', axisX - 40)
           .attr('y', yPos - 8)
@@ -803,11 +808,11 @@ export default function TideChart(props: TideChartProps) {
         const tideOffset = (th.tideReference ?? 'msl') === 'msl' ? props.meanSeaLevel : 0
         if (th.tideMin != null) {
           const datumVal = th.tideMin + tideOffset
-          drawMarker(yScale(datumVal), margin.left, `${th.tideMin} ft`, '#e8a735', datumVal, tideTicks)
+          drawMarker(yScale(datumVal), margin.left, `${th.tideMin} ft`, '#e8a735', datumVal, tideTicks, undefined, 'tideMin')
         }
         if (th.tideMax != null) {
           const datumVal = th.tideMax + tideOffset
-          drawMarker(yScale(datumVal), margin.left, `${th.tideMax} ft`, '#e8a735', datumVal, tideTicks)
+          drawMarker(yScale(datumVal), margin.left, `${th.tideMax} ft`, '#e8a735', datumVal, tideTicks, undefined, 'tideMax')
         }
       }
 
@@ -815,10 +820,10 @@ export default function TideChart(props: TideChartProps) {
       if (tempScale && th) {
         const tempTicks = tempScale.ticks(5)
         if (th.tempMin != null) {
-          drawMarker(tempScale(th.tempMin), tempAxisX, `${th.tempMin}°`, '#b35900', th.tempMin, tempTicks, 'temp-threshold')
+          drawMarker(tempScale(th.tempMin), tempAxisX, `${th.tempMin}°`, '#b35900', th.tempMin, tempTicks, 'temp-threshold', 'tempMin')
         }
         if (th.tempMax != null) {
-          drawMarker(tempScale(th.tempMax), tempAxisX, `${th.tempMax}°`, '#b35900', th.tempMax, tempTicks, 'temp-threshold')
+          drawMarker(tempScale(th.tempMax), tempAxisX, `${th.tempMax}°`, '#b35900', th.tempMax, tempTicks, 'temp-threshold', 'tempMax')
         }
       }
 
@@ -826,10 +831,10 @@ export default function TideChart(props: TideChartProps) {
       if (windScale && th) {
         const windTicks = windScale.ticks(5)
         if (th.windMin != null) {
-          drawMarker(windScale(th.windMin), windAxisX, `${th.windMin}`, '#2a6b5a', th.windMin, windTicks, 'wind-threshold')
+          drawMarker(windScale(th.windMin), windAxisX, `${th.windMin}`, '#2a6b5a', th.windMin, windTicks, 'wind-threshold', 'windMin')
         }
         if (th.windMax != null) {
-          drawMarker(windScale(th.windMax), windAxisX, `${th.windMax}`, '#2a6b5a', th.windMax, windTicks, 'wind-threshold')
+          drawMarker(windScale(th.windMax), windAxisX, `${th.windMax}`, '#2a6b5a', th.windMax, windTicks, 'wind-threshold', 'windMax')
         }
       }
     }
@@ -935,6 +940,70 @@ export default function TideChart(props: TideChartProps) {
       })
 
     // Invisible wider hit-targets for temp/wind lines and thresholds (on top of crosshair overlay)
+    // Resolve scale for a given threshold key
+    const tideOffset = props.thresholds
+      ? ((props.thresholds.tideReference ?? 'msl') === 'msl' ? props.meanSeaLevel : 0)
+      : 0
+    function scaleForKey(key: string): d3.ScaleLinear<number, number> | null {
+      if (key.startsWith('tide')) return yScale
+      if (key.startsWith('temp')) return tempScale
+      if (key.startsWith('wind')) return windScale
+      return null
+    }
+
+    function addThresholdDrag(target: d3.Selection<any, any, any, any>, thresholdKey: string, lineClass: string, axisClass: string) {
+      const scale = scaleForKey(thresholdKey)
+      if (!scale) return
+      let dragged = false
+      let markerAxisX = 0
+
+      const drag = d3.drag<any, any>()
+        .on('start', () => {
+          dragged = false
+          highlightOverlay(lineClass, axisClass)
+          // Cache the marker's x position from the triangle transform
+          const markerG = svg.select(`g[data-threshold-key="${thresholdKey}"]`)
+          const transform = markerG.select('path').attr('transform') || ''
+          const match = transform.match(/translate\(([^,]+)/)
+          markerAxisX = match ? parseFloat(match[1]) : 0
+        })
+        .on('drag', (event) => {
+          dragged = true
+          const newY = Math.max(margin.top, Math.min(height - margin.bottom, event.y))
+          // Move the threshold line
+          svg.selectAll(`line[data-threshold-key="${thresholdKey}"]`).attr('y1', newY).attr('y2', newY)
+          // Move the marker group elements
+          svg.selectAll(`g[data-threshold-key="${thresholdKey}"]`).each(function () {
+            const g = d3.select(this)
+            g.select('path').attr('transform', `translate(${markerAxisX},${newY})`)
+            g.select('text').attr('y', newY + 3.5)
+            g.select('rect').attr('y', newY - 8)
+          })
+          // Move hit-target line if present
+          if (target.attr('y1') != null) {
+            target.attr('y1', newY).attr('y2', newY)
+          }
+        })
+        .on('end', (event) => {
+          unhighlightOverlay(lineClass, axisClass)
+          if (!dragged) {
+            props.onOpenSettings?.()
+            return
+          }
+          const newY = Math.max(margin.top, Math.min(height - margin.bottom, event.y))
+          let rawValue = scale.invert(newY)
+          if (thresholdKey.startsWith('tide')) rawValue -= tideOffset
+          // Round to 1 decimal
+          const rounded = Math.round(rawValue * 10) / 10
+          // Wind can't go below 0
+          const clamped = thresholdKey.startsWith('wind') ? Math.max(0, rounded) : rounded
+          props.onUpdateThreshold?.(thresholdKey as keyof HighlightThresholds, clamped)
+        })
+
+      target.call(drag)
+        .style('cursor', 'ns-resize')
+    }
+
     for (const [lineClass, axisClass] of [['temp-line', 'temp-axis'], ['wind-line', 'wind-axis']] as const) {
       svg.selectAll(`.${lineClass}`).each(function () {
         const hitTarget = svg.append('path')
@@ -948,6 +1017,7 @@ export default function TideChart(props: TideChartProps) {
       const thresholdClass = lineClass.replace('-line', '-threshold')
       svg.selectAll(`.${thresholdClass}`).each(function () {
         const orig = d3.select(this)
+        const key = orig.attr('data-threshold-key')
         const hitTarget = svg.append('line')
           .attr('x1', orig.attr('x1'))
           .attr('x2', orig.attr('x2'))
@@ -956,9 +1026,20 @@ export default function TideChart(props: TideChartProps) {
           .attr('stroke', 'transparent')
           .attr('stroke-width', 12)
           .attr('pointer-events', 'stroke')
-        bindOverlayHover(hitTarget, lineClass, axisClass, true)
+        bindOverlayHover(hitTarget, lineClass, axisClass)
+        if (key) addThresholdDrag(hitTarget, key, lineClass, axisClass)
       })
     }
+
+    // Add drag to threshold marker groups (triangle + label on the axis)
+    svg.selectAll('.threshold-marker').each(function () {
+      const g = d3.select(this)
+      const key = g.attr('data-threshold-key')
+      if (!key) return
+      const lineClass = key.startsWith('temp') ? 'temp-line' : key.startsWith('wind') ? 'wind-line' : ''
+      const axisClass = key.startsWith('temp') ? 'temp-axis' : key.startsWith('wind') ? 'wind-axis' : ''
+      addThresholdDrag(g, key, lineClass, axisClass)
+    })
 
     // Scroll to "now" on first render, preserve position on re-renders
     const scrollEl = scrollWrapper.node()!

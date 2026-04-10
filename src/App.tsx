@@ -41,6 +41,12 @@ function App() {
     saveThresholds(t)
   }
 
+  const handleUpdateThreshold = (key: keyof HighlightThresholds, value: number) => {
+    const updated = { ...thresholds(), [key]: value }
+    setThresholds(updated)
+    saveThresholds(updated)
+  }
+
   // Lightweight SPA router: instead of pulling in @solidjs/router, we use a
   // global click interceptor + popstate listener. This keeps the dependency
   // count low for a simple 3-route app. The trade-off is less idiomatic Solid,
@@ -155,7 +161,7 @@ function App() {
               <div class="tab-panel-frame">
                 <Show when={route().page === 'chart'}>
                   <section class="tab-panel">
-                    <TideChart constituents={data().constituents} meanSeaLevel={data().meanSeaLevel} metData={metData()} thresholds={thresholds()} onOpenSettings={() => setShowSettings(true)} />
+                    <TideChart constituents={data().constituents} meanSeaLevel={data().meanSeaLevel} metData={metData()} thresholds={thresholds()} onOpenSettings={() => setShowSettings(true)} onUpdateThreshold={handleUpdateThreshold} />
                   </section>
                 </Show>
                 <Show when={route().page === 'harmonics'}>
