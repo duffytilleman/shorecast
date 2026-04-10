@@ -1,6 +1,6 @@
 import * as d3 from 'd3'
-import type { ChartContext, OverlayScales } from './types'
-import type { MetData } from '../../lib/noaa'
+import type { ChartContext, ChartMode, OverlayScales } from './types'
+import type { MetData, TideDatums } from '../../lib/noaa'
 import type { HighlightThresholds } from '../../lib/preferences'
 
 export function drawChart(
@@ -11,6 +11,8 @@ export function drawChart(
   currentLevel: number,
   metData: MetData | null | undefined,
   thresholds: HighlightThresholds | undefined,
+  chartMode: ChartMode = 'planning',
+  datums?: TideDatums,
 ): OverlayScales {
   const { svg, xScale, yScale, margin, width, height, now } = ctx
   const hasTemp = metData?.temperature?.length
@@ -110,6 +112,44 @@ export function drawChart(
       .attr('stroke-width', 0.5)
       .attr('stroke-dasharray', '2,3')
       .attr('stroke-opacity', 0.12)
+  }
+
+  // Datum reference lines (tide details mode) — static lines and labels only.
+  // Interactive hover targets are added later via setupDatumHover() so they
+  // sit above the crosshair interaction rect in SVG z-order.
+  if (chartMode === 'tideDetails' && datums) {
+    const datumDefs: { value: number; label: string; color: string }[] = [
+      { value: datums.mhhw, label: 'MHHW', color: '#2a5a7b' },
+      { value: datums.mhw, label: 'MHW', color: '#3a7ca5' },
+      { value: datums.mlw, label: 'MLW', color: '#8b5e3c' },
+      { value: datums.mllw, label: 'MLLW', color: '#6b4226' },
+    ]
+
+    datumDefs.forEach(({ value, label, color }) => {
+      const y = yScale(value)
+      if (y < margin.top || y > height - margin.bottom) return
+
+      svg
+        .append('line')
+        .attr('class', `datum-line datum-line-${label.toLowerCase()}`)
+        .attr('x1', margin.left)
+        .attr('x2', width - margin.right)
+        .attr('y1', y)
+        .attr('y2', y)
+        .attr('stroke', color)
+        .attr('stroke-width', 1)
+        .attr('stroke-dasharray', '6,4')
+        .attr('stroke-opacity', 0.5)
+
+      svg
+        .append('text')
+        .attr('x', margin.left + 6)
+        .attr('y', y - 5)
+        .attr('text-anchor', 'start')
+        .attr('class', 'datum-ref-label')
+        .attr('fill', color)
+        .text(`${label}  ${value.toFixed(1)} ft`)
+    })
   }
 
   // Area fill
@@ -436,4 +476,64 @@ export function drawChart(
     .call((g) => g.selectAll('.tick text').attr('fill', '#5a4430'))
 
   return { tempScale, tempAxisX, windScale, windAxisX }
+}
+
+/** Append datum hover hit-targets and tooltip. Must be called AFTER
+ *  setupInteractions so these sit above the crosshair rect in SVG z-order. */
+export function setupDatumHover(ctx: ChartContext, datums: TideDatums) {
+  const { svg, yScale, margin, width, height } = ctx
+
+  const datumDefs: { value: number; label: string; fullName: string; color: string }[] = [
+    { value: datums.mhhw, label: 'MHHW', fullName: 'Mean Higher High Water', color: '#2a5a7b' },
+    { value: datums.mhw, label: 'MHW', fullName: 'Mean High Water', color: '#3a7ca5' },
+    { value: datums.mlw, label: 'MLW', fullName: 'Mean Low Water', color: '#8b5e3c' },
+    { value: datums.mllw, label: 'MLLW', fullName: 'Mean Lower Low Water', color: '#6b4226' },
+  ]
+
+  // Shared tooltip group
+  const datumTooltip = svg.append('g').style('display', 'none')
+  const tooltipBg = datumTooltip.append('rect')
+    .attr('fill', 'rgba(240, 230, 211, 0.95)')
+    .attr('stroke', '#8b7355')
+    .attr('stroke-width', 0.5)
+    .attr('rx', 4)
+  const tooltipText = datumTooltip.append('text')
+    .attr('fill', '#5a4430')
+    .attr('font-size', '11px')
+    .attr('class', 'datum-ref-label')
+
+  datumDefs.forEach(({ value, label, fullName, color }) => {
+    const y = yScale(value)
+    if (y < margin.top || y > height - margin.bottom) return
+
+    const datumLine = svg.select(`.datum-line-${label.toLowerCase()}`)
+
+    svg.append('line')
+      .attr('x1', margin.left)
+      .attr('x2', width - margin.right)
+      .attr('y1', y)
+      .attr('y2', y)
+      .attr('stroke', 'transparent')
+      .attr('stroke-width', 14)
+      .attr('pointer-events', 'stroke')
+      .style('cursor', 'default')
+      .on('mouseenter', () => {
+        datumLine.attr('stroke-width', 2.5).attr('stroke-opacity', 0.8)
+        const tipText = `${fullName} (${label}) — ${value.toFixed(2)} ft`
+        tooltipText.text(tipText).attr('x', 8).attr('y', 15)
+        const bbox = (tooltipText.node()! as SVGTextElement).getBBox()
+        tooltipBg.attr('width', bbox.width + 16).attr('height', bbox.height + 10)
+        datumTooltip.style('display', null)
+      })
+      .on('mousemove', (event: MouseEvent) => {
+        const [mx] = d3.pointer(event)
+        const bbox = tooltipBg.node()!.getBBox()
+        const tx = mx + 12 + bbox.width > width - margin.right ? mx - bbox.width - 12 : mx + 12
+        datumTooltip.attr('transform', `translate(${tx},${y - bbox.height - 8})`)
+      })
+      .on('mouseleave', () => {
+        datumLine.attr('stroke-width', 1).attr('stroke-opacity', 0.5)
+        datumTooltip.style('display', 'none')
+      })
+  })
 }

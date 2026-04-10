@@ -243,6 +243,58 @@
   opacity: 0.8;
 }
 
+.tide-svg .datum-ref-label {
+  font-size: 9px;
+  font-style: italic;
+  opacity: 0.75;
+  letter-spacing: 0.03em;
+}
+
+/* Chart mode toggle */
+
+.chart-mode-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 0.5rem;
+}
+
+.mode-btn {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.85rem;
+  border: 1px solid rgba(139, 115, 85, 0.3);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.mode-btn:first-child {
+  border-radius: 4px 0 0 4px;
+  border-right: none;
+}
+
+.mode-btn:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.mode-btn:hover {
+  background: rgba(139, 115, 85, 0.06);
+}
+
+.mode-btn-active {
+  background: rgba(26, 58, 92, 0.08);
+  border-color: rgba(26, 58, 92, 0.35);
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.mode-btn-active + .mode-btn {
+  border-left-color: rgba(26, 58, 92, 0.35);
+}
+
 /* Tide info */
 
 .tide-info {

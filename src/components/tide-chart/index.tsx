@@ -1,17 +1,19 @@
 import { onMount, onCleanup, createEffect, on } from 'solid-js'
 import * as d3 from 'd3'
 import { type Constituent, predictTide } from '../../lib/tides'
-import type { MetData } from '../../lib/noaa'
+import type { MetData, TideDatums } from '../../lib/noaa'
 import type { HighlightThresholds } from '../../lib/preferences'
-import type { ChartContext } from './types'
+import type { ChartContext, ChartMode } from './types'
 import { findHighLowTides } from './types'
-import { drawChart } from './drawChart'
+import { drawChart, setupDatumHover } from './drawChart'
 import { drawHighlightRegions, drawThresholdMarkers, setupThresholdDrag } from './thresholds'
 import { setupInteractions } from './interactions'
 
 interface TideChartProps {
   constituents: Constituent[]
   meanSeaLevel: number
+  datums?: TideDatums
+  chartMode?: ChartMode
   metData?: MetData | null
   thresholds?: HighlightThresholds
   onOpenSettings?: () => void
@@ -43,6 +45,11 @@ export default function TideChart(props: TideChartProps) {
     if (container) renderChart()
   }, { defer: true }))
 
+  // Re-render when chart mode changes
+  createEffect(on(() => props.chartMode, () => {
+    if (container) renderChart()
+  }, { defer: true }))
+
   function renderChart() {
     // Preserve scroll position across re-renders (except initial)
     const prevScrollLeft = container.querySelector('.tide-scroll')?.scrollLeft
@@ -51,8 +58,12 @@ export default function TideChart(props: TideChartProps) {
     const rect = container.getBoundingClientRect()
     const containerWidth = Math.max(rect.width, 600)
     const height = Math.max(300, rect.height || 540)
-    const hasTemp = props.metData?.temperature?.length
-    const hasWind = props.metData?.wind?.length
+    const mode = props.chartMode ?? 'planning'
+    const showWeather = mode === 'planning'
+    const metForChart = showWeather ? props.metData : undefined
+    const thresholdsForChart = showWeather ? props.thresholds : undefined
+    const hasTemp = showWeather && props.metData?.temperature?.length
+    const hasWind = showWeather && props.metData?.wind?.length
     const leftExtra = (hasTemp ? 35 : 0) + (hasWind ? 35 : 0)
     const margin = { top: hasWind ? 56 : 26, right: 20, bottom: 52, left: 50 + leftExtra }
 
@@ -97,7 +108,7 @@ export default function TideChart(props: TideChartProps) {
     const yExtent = d3.extent(data, (d) => d.level) as [number, number]
     // Expand extent to include tide thresholds so markers are always visible
     {
-      const th = props.thresholds
+      const th = thresholdsForChart
       const tideOffset = (th?.tideReference ?? 'msl') === 'msl' ? props.meanSeaLevel : 0
       if (th?.tideMin != null) {
         const v = th.tideMin + tideOffset
@@ -106,6 +117,13 @@ export default function TideChart(props: TideChartProps) {
       }
       if (th?.tideMax != null) {
         const v = th.tideMax + tideOffset
+        if (v < yExtent[0]) yExtent[0] = v
+        if (v > yExtent[1]) yExtent[1] = v
+      }
+    }
+    // In tide details mode, expand extent to include datum lines
+    if (mode === 'tideDetails' && props.datums) {
+      for (const v of [props.datums.mhhw, props.datums.mhw, props.datums.mlw, props.datums.mllw]) {
         if (v < yExtent[0]) yExtent[0] = v
         if (v > yExtent[1]) yExtent[1] = v
       }
@@ -131,16 +149,25 @@ export default function TideChart(props: TideChartProps) {
     const ctx: ChartContext = { svg, xScale, yScale, margin, width, height, now }
 
     // Draw chart layers (order matters for SVG z-index)
-    drawHighlightRegions(ctx, data, props.metData, props.thresholds, props.meanSeaLevel)
-    const overlayScales = drawChart(ctx, data, extremes, props.meanSeaLevel, currentLevel, props.metData, props.thresholds)
-    drawThresholdMarkers(ctx, props.thresholds, props.meanSeaLevel, overlayScales)
-    setupInteractions(ctx, props.constituents, props.meanSeaLevel, props.metData, overlayScales, {
-      onOpenSettings: props.onOpenSettings,
+    if (showWeather) {
+      drawHighlightRegions(ctx, data, props.metData, props.thresholds, props.meanSeaLevel)
+    }
+    const overlayScales = drawChart(ctx, data, extremes, props.meanSeaLevel, currentLevel, metForChart, thresholdsForChart, mode, props.datums)
+    if (showWeather) {
+      drawThresholdMarkers(ctx, props.thresholds, props.meanSeaLevel, overlayScales)
+      setupThresholdDrag(ctx, props.thresholds, props.meanSeaLevel, overlayScales, {
+        onOpenSettings: props.onOpenSettings,
+        onUpdateThreshold: props.onUpdateThreshold,
+      })
+    }
+    setupInteractions(ctx, props.constituents, props.meanSeaLevel, metForChart, overlayScales, {
+      onOpenSettings: showWeather ? props.onOpenSettings : undefined,
     })
-    setupThresholdDrag(ctx, props.thresholds, props.meanSeaLevel, overlayScales, {
-      onOpenSettings: props.onOpenSettings,
-      onUpdateThreshold: props.onUpdateThreshold,
-    })
+    // Datum hover targets must be appended after setupInteractions so they
+    // sit above the crosshair rect in SVG z-order.
+    if (mode === 'tideDetails' && props.datums) {
+      setupDatumHover(ctx, props.datums)
+    }
 
     // Scroll to "now" on first render, preserve position on re-renders
     const scrollEl = scrollWrapper.node()!
@@ -165,7 +192,7 @@ export default function TideChart(props: TideChartProps) {
       <span class="direction-text">${rising ? 'Rising' : 'Falling'}</span>
     `)
 
-    if (hasTemp) {
+    if (showWeather && props.metData?.temperature?.length) {
       const latest = props.metData!.temperature![props.metData!.temperature!.length - 1]
       info.append('div').attr('class', 'tide-reading').html(`
         <span class="reading-value">${latest.value.toFixed(0)}°F</span>
@@ -173,7 +200,7 @@ export default function TideChart(props: TideChartProps) {
       `)
     }
 
-    if (hasWind) {
+    if (showWeather && props.metData?.wind?.length) {
       const latest = props.metData!.wind![props.metData!.wind!.length - 1]
       info.append('div').attr('class', 'tide-reading').html(`
         <span class="reading-value">${latest.speed.toFixed(0)} kn ${latest.direction}</span>
@@ -187,6 +214,15 @@ export default function TideChart(props: TideChartProps) {
       info.append('div').attr('class', 'tide-next').html(`
         <span class="next-label">Next ${nextExtreme.type === 'high' ? 'High' : 'Low'} Tide</span>
         <span class="next-value">${nextExtreme.level.toFixed(2)} ft at ${timeStr}</span>
+      `)
+    }
+
+    // In tide details mode, show datum summary
+    if (mode === 'tideDetails' && props.datums) {
+      const d = props.datums
+      info.append('div').attr('class', 'tide-reading').html(`
+        <span class="reading-value">${(d.mhhw - d.mlw).toFixed(1)} ft</span>
+        <span class="reading-label">Tidal Range</span>
       `)
     }
   }

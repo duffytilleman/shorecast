@@ -7,6 +7,7 @@ import ThresholdSettings from './components/ThresholdSettings'
 import { formatStationName } from './lib/format'
 import { fetchStationData, fetchMetData, getLastStation, getLastStationName, setLastStation } from './lib/noaa'
 import { loadThresholds, saveThresholds, type HighlightThresholds } from './lib/preferences'
+import type { ChartMode } from './components/tide-chart/types'
 
 type Route =
   | { page: 'search' }
@@ -35,6 +36,7 @@ function App() {
   const [route, setRoute] = createSignal<Route>(parseRoute())
   const [thresholds, setThresholds] = createSignal<HighlightThresholds>(loadThresholds())
   const [showSettings, setShowSettings] = createSignal(false)
+  const [chartMode, setChartMode] = createSignal<ChartMode>('planning')
 
   const handleSaveThresholds = (t: HighlightThresholds) => {
     setThresholds(t)
@@ -160,8 +162,20 @@ function App() {
             >
               <div class="tab-panel-frame">
                 <Show when={route().page === 'chart'}>
+                  <div class="chart-mode-toggle">
+                    <button
+                      class="mode-btn"
+                      classList={{ 'mode-btn-active': chartMode() === 'planning' }}
+                      onClick={() => setChartMode('planning')}
+                    >Planning</button>
+                    <button
+                      class="mode-btn"
+                      classList={{ 'mode-btn-active': chartMode() === 'tideDetails' }}
+                      onClick={() => setChartMode('tideDetails')}
+                    >Tide Details</button>
+                  </div>
                   <section class="tab-panel">
-                    <TideChart constituents={data().constituents} meanSeaLevel={data().meanSeaLevel} metData={metData()} thresholds={thresholds()} onOpenSettings={() => setShowSettings(true)} onUpdateThreshold={handleUpdateThreshold} />
+                    <TideChart constituents={data().constituents} meanSeaLevel={data().meanSeaLevel} datums={data().datums} chartMode={chartMode()} metData={metData()} thresholds={thresholds()} onOpenSettings={() => setShowSettings(true)} onUpdateThreshold={handleUpdateThreshold} />
                   </section>
                 </Show>
                 <Show when={route().page === 'harmonics'}>

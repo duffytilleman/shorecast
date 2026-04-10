@@ -32,9 +32,18 @@ export interface Station {
   lng: number
 }
 
+export interface TideDatums {
+  mhhw: number   // Mean Higher High Water (ft above MLLW)
+  mhw: number    // Mean High Water
+  msl: number    // Mean Sea Level
+  mlw: number    // Mean Low Water
+  mllw: number   // Mean Lower Low Water (always 0, the reference datum)
+}
+
 export interface StationData {
   constituents: Constituent[]
   meanSeaLevel: number
+  datums: TideDatums
   stationName: string
   lat: number
   lng: number
@@ -147,15 +156,24 @@ async function fetchStationDataFromApi(stationId: string): Promise<StationData> 
     description: h.description,
   }))
 
-  const msl = datumsData.datums?.find((d: any) => d.name === 'MSL')?.value ?? 0
-  const mllw = datumsData.datums?.find((d: any) => d.name === 'MLLW')?.value ?? 0
-  const meanSeaLevel = msl - mllw
+  const getDatum = (name: string) => datumsData.datums?.find((d: any) => d.name === name)?.value ?? 0
+  const mllwVal = getDatum('MLLW')
+  const mslVal = getDatum('MSL')
+  const meanSeaLevel = mslVal - mllwVal
+
+  const datums: TideDatums = {
+    mhhw: getDatum('MHHW') - mllwVal,
+    mhw: getDatum('MHW') - mllwVal,
+    msl: meanSeaLevel,
+    mlw: getDatum('MLW') - mllwVal,
+    mllw: 0,
+  }
 
   const stationName = stationInfo?.stations?.[0]?.name ?? stationId
   const lat = stationInfo?.stations?.[0]?.lat ?? 0
   const lng = stationInfo?.stations?.[0]?.lng ?? 0
 
-  return { constituents, meanSeaLevel, stationName, lat, lng }
+  return { constituents, meanSeaLevel, datums, stationName, lat, lng }
 }
 
 // --- Meteorological data (wind + temperature) ---

@@ -1,5 +1,7 @@
 import type * as d3 from 'd3'
 
+export type ChartMode = 'planning' | 'tideDetails'
+
 export interface ChartContext {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>
   xScale: d3.ScaleTime<number, number>
