@@ -513,7 +513,7 @@
 /* Station search */
 
 .station-search {
-  max-width: 640px;
+  width: min(640px, 100%);
   margin: 0 auto;
   padding: 0.5rem 0.5rem 2rem;
 }
