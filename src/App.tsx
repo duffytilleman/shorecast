@@ -3,7 +3,9 @@ import './App.css'
 import TideChart from './components/TideChart'
 import HarmonicCircles from './components/HarmonicCircles'
 import StationSearch from './components/StationSearch'
+import ThresholdSettings from './components/ThresholdSettings'
 import { fetchStationData, fetchMetData, getLastStation, setLastStation } from './lib/noaa'
+import { loadThresholds, saveThresholds, type HighlightThresholds } from './lib/preferences'
 
 type Route =
   | { page: 'search' }
@@ -30,6 +32,13 @@ function App() {
   }
 
   const [route, setRoute] = createSignal<Route>(parseRoute())
+  const [thresholds, setThresholds] = createSignal<HighlightThresholds>(loadThresholds())
+  const [showSettings, setShowSettings] = createSignal(false)
+
+  const handleSaveThresholds = (t: HighlightThresholds) => {
+    setThresholds(t)
+    saveThresholds(t)
+  }
 
   onMount(() => {
     const sync = () => setRoute(parseRoute())
@@ -89,6 +98,15 @@ function App() {
         </div>
       </header>
 
+      <Show when={showSettings()}>
+        <ThresholdSettings
+          thresholds={thresholds()}
+          meanSeaLevel={stationData()?.meanSeaLevel ?? 0}
+          onSave={handleSaveThresholds}
+          onClose={() => setShowSettings(false)}
+        />
+      </Show>
+
       <Show when={route().page === 'search'}>
         <StationSearch />
       </Show>
@@ -112,7 +130,7 @@ function App() {
               <div class="tab-panel-frame">
                 <Show when={route().page === 'chart'}>
                   <section class="tab-panel">
-                    <TideChart constituents={data().constituents} meanSeaLevel={data().meanSeaLevel} metData={metData()} />
+                    <TideChart constituents={data().constituents} meanSeaLevel={data().meanSeaLevel} metData={metData()} thresholds={thresholds()} onOpenSettings={() => setShowSettings(true)} />
                   </section>
                 </Show>
                 <Show when={route().page === 'harmonics'}>

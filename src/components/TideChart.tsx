@@ -2,11 +2,14 @@ import { onMount, onCleanup, createEffect, on } from 'solid-js'
 import * as d3 from 'd3'
 import { type Constituent, predictTide } from '../lib/tides'
 import type { MetData } from '../lib/noaa'
+import type { HighlightThresholds } from '../lib/preferences'
 
 interface TideChartProps {
   constituents: Constituent[]
   meanSeaLevel: number
   metData?: MetData | null
+  thresholds?: HighlightThresholds
+  onOpenSettings?: () => void
 }
 
 function findHighLowTides(
@@ -44,6 +47,11 @@ export default function TideChart(props: TideChartProps) {
   // Re-render when met data arrives asynchronously
   createEffect(on(() => props.metData, (metData) => {
     if (metData && container) renderChart()
+  }, { defer: true }))
+
+  // Re-render when thresholds change
+  createEffect(on(() => props.thresholds, () => {
+    if (container) renderChart()
   }, { defer: true }))
 
   function renderChart() {
@@ -97,6 +105,21 @@ export default function TideChart(props: TideChartProps) {
     const extremes = findHighLowTides(data)
 
     const yExtent = d3.extent(data, (d) => d.level) as [number, number]
+    // Expand extent to include tide thresholds so markers are always visible
+    {
+      const th = props.thresholds
+      const tideOffset = (th?.tideReference ?? 'msl') === 'msl' ? props.meanSeaLevel : 0
+      if (th?.tideMin != null) {
+        const v = th.tideMin + tideOffset
+        if (v < yExtent[0]) yExtent[0] = v
+        if (v > yExtent[1]) yExtent[1] = v
+      }
+      if (th?.tideMax != null) {
+        const v = th.tideMax + tideOffset
+        if (v < yExtent[0]) yExtent[0] = v
+        if (v > yExtent[1]) yExtent[1] = v
+      }
+    }
     const yPad = (yExtent[1] - yExtent[0]) * 0.15
 
     const xScale = d3
@@ -225,46 +248,99 @@ export default function TideChart(props: TideChartProps) {
       .attr('d', area)
       .attr('fill', 'url(#tide-area-gradient)')
 
-    // Highlight: tide above MSL and temp > 70°F
-    if (hasTemp) {
-      const tempData = props.metData!.temperature!
-      const highlightData = data.map((d) => {
-        if (d.level <= props.meanSeaLevel) return { ...d, highlight: false }
-        // Find nearest temp within 1.5 hours
-        let best = tempData[0], bestDist = Math.abs(tempData[0].time - d.time)
-        for (let i = 1; i < tempData.length; i++) {
-          const dist = Math.abs(tempData[i].time - d.time)
-          if (dist < bestDist) { best = tempData[i]; bestDist = dist }
-          else if (dist > bestDist) break
-        }
-        return { ...d, highlight: bestDist < 90 * 60 * 1000 && best.value >= 70 }
-      })
+    // Highlight regions where all enabled threshold conditions are met
+    {
+      const th = props.thresholds
+      // Convert tide thresholds to datum-relative values for comparison with d.level
+      const tideOffset = (th?.tideReference ?? 'msl') === 'msl' ? props.meanSeaLevel : 0
+      const tideMinVal = th?.tideMin != null ? th.tideMin + tideOffset : null
+      const tideMaxVal = th?.tideMax != null ? th.tideMax + tideOffset : null
+      const tempMinVal = th?.tempMin ?? null
+      const tempMaxVal = th?.tempMax ?? null
+      const windMinVal = th?.windMin ?? null
+      const windMaxVal = th?.windMax ?? null
 
-      // Build contiguous segments where highlight is true
-      const segments: { time: number; level: number }[][] = []
-      let current: { time: number; level: number }[] = []
-      for (const d of highlightData) {
-        if (d.highlight) {
-          current.push(d)
-        } else if (current.length) {
-          segments.push(current)
-          current = []
+      const hasTempThreshold = tempMinVal !== null || tempMaxVal !== null
+      const hasWindThreshold = windMinVal !== null || windMaxVal !== null
+      const hasTideThreshold = tideMinVal !== null || tideMaxVal !== null
+      const anyThreshold = hasTideThreshold || hasTempThreshold || hasWindThreshold
+
+      if (anyThreshold) {
+        const tempData = hasTemp ? props.metData!.temperature! : []
+        const windData = hasWind ? props.metData!.wind! : []
+
+        const findNearestTemp = (time: number) => {
+          if (!tempData.length) return null
+          let best = tempData[0], bestDist = Math.abs(tempData[0].time - time)
+          for (let i = 1; i < tempData.length; i++) {
+            const dist = Math.abs(tempData[i].time - time)
+            if (dist < bestDist) { best = tempData[i]; bestDist = dist }
+            else if (dist > bestDist) break
+          }
+          return bestDist < 90 * 60 * 1000 ? best : null
         }
+
+        const findNearestWind = (time: number) => {
+          if (!windData.length) return null
+          let best = windData[0], bestDist = Math.abs(windData[0].time - time)
+          for (let i = 1; i < windData.length; i++) {
+            const dist = Math.abs(windData[i].time - time)
+            if (dist < bestDist) { best = windData[i]; bestDist = dist }
+            else if (dist > bestDist) break
+          }
+          return bestDist < 90 * 60 * 1000 ? best : null
+        }
+
+        const highlightData = data.map((d) => {
+          // Tide level check
+          if (tideMinVal !== null && d.level < tideMinVal) return { ...d, highlight: false }
+          if (tideMaxVal !== null && d.level > tideMaxVal) return { ...d, highlight: false }
+
+          // Temperature check
+          if (hasTempThreshold) {
+            const temp = findNearestTemp(d.time)
+            if (!temp) return { ...d, highlight: false }
+            if (tempMinVal !== null && temp.value < tempMinVal) return { ...d, highlight: false }
+            if (tempMaxVal !== null && temp.value > tempMaxVal) return { ...d, highlight: false }
+          }
+
+          // Wind check
+          if (hasWindThreshold) {
+            const wind = findNearestWind(d.time)
+            if (!wind) return { ...d, highlight: false }
+            if (windMinVal !== null && wind.speed < windMinVal) return { ...d, highlight: false }
+            if (windMaxVal !== null && wind.speed > windMaxVal) return { ...d, highlight: false }
+          }
+
+          return { ...d, highlight: true }
+        })
+
+        // Build contiguous segments where highlight is true
+        const segments: { time: number; level: number }[][] = []
+        let current: { time: number; level: number }[] = []
+        for (const d of highlightData) {
+          if (d.highlight) {
+            current.push(d)
+          } else if (current.length) {
+            segments.push(current)
+            current = []
+          }
+        }
+        if (current.length) segments.push(current)
+
+        segments.forEach((seg) => {
+          const x0 = xScale(seg[0].time)
+          const x1 = xScale(seg[seg.length - 1].time)
+          svg
+            .append('rect')
+            .attr('x', x0)
+            .attr('y', margin.top)
+            .attr('width', x1 - x0)
+            .attr('height', height - margin.top - margin.bottom)
+            .attr('fill', '#e8a735')
+            .attr('fill-opacity', 0.12)
+        })
       }
-      if (current.length) segments.push(current)
-
-      segments.forEach((seg) => {
-        const x0 = xScale(seg[0].time)
-        const x1 = xScale(seg[seg.length - 1].time)
-        svg
-          .append('rect')
-          .attr('x', x0)
-          .attr('y', margin.top)
-          .attr('width', x1 - x0)
-          .attr('height', height - margin.top - margin.bottom)
-          .attr('fill', '#e8a735')
-          .attr('fill-opacity', 0.12)
-      })
     }
 
     // Tide line
@@ -338,14 +414,26 @@ export default function TideChart(props: TideChartProps) {
       .attr('stroke-width', 2)
 
     // --- Temperature overlay ---
+    let tempScale: d3.ScaleLinear<number, number> | null = null
+    let tempAxisX = 0
     if (hasTemp) {
       const tempData = props.metData!.temperature!
       const observed = tempData.filter((d) => !d.forecast)
       const forecast = tempData.filter((d) => d.forecast)
       const tempExtent = d3.extent(tempData, (d) => d.value) as [number, number]
+      // Expand to include temp thresholds
+      const th = props.thresholds
+      if (th?.tempMin != null) {
+        if (th.tempMin < tempExtent[0]) tempExtent[0] = th.tempMin
+        if (th.tempMin > tempExtent[1]) tempExtent[1] = th.tempMin
+      }
+      if (th?.tempMax != null) {
+        if (th.tempMax < tempExtent[0]) tempExtent[0] = th.tempMax
+        if (th.tempMax > tempExtent[1]) tempExtent[1] = th.tempMax
+      }
       const tempPad = (tempExtent[1] - tempExtent[0]) * 0.2 || 5
 
-      const tempScale = d3
+      tempScale = d3
         .scaleLinear()
         .domain([tempExtent[0] - tempPad, tempExtent[1] + tempPad])
         .range([height - margin.bottom, margin.top])
@@ -382,7 +470,7 @@ export default function TideChart(props: TideChartProps) {
           .attr('stroke-opacity', 0.5)
       }
 
-      const tempAxisX = margin.left - (hasWind ? 35 : 0) - 35
+      tempAxisX = margin.left - (hasWind ? 35 : 0) - 35
       const tempAxis = d3
         .axisLeft(tempScale)
         .ticks(5)
@@ -409,14 +497,20 @@ export default function TideChart(props: TideChartProps) {
     }
 
     // --- Wind speed line ---
+    let windScale: d3.ScaleLinear<number, number> | null = null
+    let windAxisX = 0
     if (hasWind) {
       const windData = props.metData!.wind!
       const observedWind = windData.filter((d) => !d.forecast)
       const forecastWind = windData.filter((d) => d.forecast)
-      const windMax = d3.max(windData, (d) => d.speed) || 1
+      let windMax = d3.max(windData, (d) => d.speed) || 1
+      // Expand to include wind thresholds
+      const th2 = props.thresholds
+      if (th2?.windMin != null && th2.windMin > windMax) windMax = th2.windMin
+      if (th2?.windMax != null && th2.windMax > windMax) windMax = th2.windMax
       const windPad = windMax * 0.2 || 5
 
-      const windScale = d3
+      windScale = d3
         .scaleLinear()
         .domain([0, windMax + windPad])
         .range([height - margin.bottom, margin.top])
@@ -452,7 +546,7 @@ export default function TideChart(props: TideChartProps) {
           .attr('stroke-opacity', 0.5)
       }
 
-      const windAxisX = margin.left - 35
+      windAxisX = margin.left - 35
       const windAxis = d3
         .axisLeft(windScale)
         .ticks(5)
@@ -551,6 +645,98 @@ export default function TideChart(props: TideChartProps) {
       .call((g) => g.select('.domain').attr('stroke', '#6b5335').attr('stroke-opacity', 0.6))
       .call((g) => g.selectAll('.tick line').attr('stroke', '#6b5335').attr('stroke-opacity', 0.4))
       .call((g) => g.selectAll('.tick text').attr('fill', '#5a4430'))
+
+    // --- Threshold markers on axes ---
+    {
+      const th = props.thresholds
+      const openSettings = props.onOpenSettings
+
+      function drawMarker(
+        yPos: number, axisX: number, label: string, color: string,
+        value: number, tickValues: number[],
+      ) {
+        if (yPos < margin.top || yPos > height - margin.bottom) return
+        // Dashed line across chart
+        svg.append('line')
+          .attr('x1', margin.left)
+          .attr('x2', width - margin.right)
+          .attr('y1', yPos)
+          .attr('y2', yPos)
+          .attr('stroke', color)
+          .attr('stroke-width', 1)
+          .attr('stroke-dasharray', '4,4')
+          .attr('stroke-opacity', 0.4)
+
+        // Triangle marker on the axis
+        const g = svg.append('g')
+          .attr('class', 'threshold-marker')
+          .style('cursor', 'pointer')
+          .on('click', () => openSettings?.())
+
+        g.append('path')
+          .attr('d', 'M0,-5 L8,0 L0,5 Z')
+          .attr('transform', `translate(${axisX},${yPos})`)
+          .attr('fill', color)
+          .attr('fill-opacity', 0.8)
+
+        // Skip label if value coincides with a tick to avoid overlap
+        const onTick = tickValues.some((t) => Math.abs(t - value) < 1e-9)
+        if (!onTick) {
+          g.append('text')
+            .attr('x', axisX - 4)
+            .attr('y', yPos + 3.5)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '8.5px')
+            .attr('font-style', 'italic')
+            .attr('fill', color)
+            .text(label)
+        }
+
+        // Invisible wider click target
+        g.append('rect')
+          .attr('x', axisX - 40)
+          .attr('y', yPos - 8)
+          .attr('width', 52)
+          .attr('height', 16)
+          .attr('fill', 'transparent')
+      }
+
+      // Tide thresholds on main y-axis
+      if (th) {
+        const tideTicks = yScale.ticks(6)
+        const tideOffset = (th.tideReference ?? 'msl') === 'msl' ? props.meanSeaLevel : 0
+        if (th.tideMin != null) {
+          const datumVal = th.tideMin + tideOffset
+          drawMarker(yScale(datumVal), margin.left, `${th.tideMin} ft`, '#e8a735', datumVal, tideTicks)
+        }
+        if (th.tideMax != null) {
+          const datumVal = th.tideMax + tideOffset
+          drawMarker(yScale(datumVal), margin.left, `${th.tideMax} ft`, '#e8a735', datumVal, tideTicks)
+        }
+      }
+
+      // Temperature thresholds on temp axis
+      if (tempScale && th) {
+        const tempTicks = tempScale.ticks(5)
+        if (th.tempMin != null) {
+          drawMarker(tempScale(th.tempMin), tempAxisX, `${th.tempMin}°`, '#b35900', th.tempMin, tempTicks)
+        }
+        if (th.tempMax != null) {
+          drawMarker(tempScale(th.tempMax), tempAxisX, `${th.tempMax}°`, '#b35900', th.tempMax, tempTicks)
+        }
+      }
+
+      // Wind thresholds on wind axis
+      if (windScale && th) {
+        const windTicks = windScale.ticks(5)
+        if (th.windMin != null) {
+          drawMarker(windScale(th.windMin), windAxisX, `${th.windMin}`, '#2a6b5a', th.windMin, windTicks)
+        }
+        if (th.windMax != null) {
+          drawMarker(windScale(th.windMax), windAxisX, `${th.windMax}`, '#2a6b5a', th.windMax, windTicks)
+        }
+      }
+    }
 
     // --- Hover crosshair ---
     const hoverGroup = svg.append('g').style('display', 'none')

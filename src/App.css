@@ -198,6 +198,14 @@
   display: block;
 }
 
+.tide-svg .threshold-marker:hover path {
+  fill-opacity: 1;
+}
+
+.tide-svg .threshold-marker:hover text {
+  font-weight: 700;
+}
+
 /* SVG Typography */
 
 .tide-svg text {
@@ -653,6 +661,233 @@
 
 .footer-link:hover {
   color: var(--ink);
+}
+
+/* Threshold settings modal */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(44, 30, 15, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: #f6efdf;
+  border: 1px solid rgba(139, 115, 85, 0.35);
+  border-radius: 12px;
+  padding: 1.5rem 1.8rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 16px 48px rgba(44, 30, 15, 0.2);
+  font-family: 'Libre Baskerville', Georgia, serif;
+}
+
+.modal-title {
+  font-family: 'IM Fell English', 'Libre Baskerville', Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0 0 0.3rem;
+  letter-spacing: 0.04em;
+}
+
+.modal-desc {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--muted);
+  margin: 0 0 1.2rem;
+  line-height: 1.5;
+}
+
+.threshold-section {
+  margin-bottom: 1rem;
+}
+
+.threshold-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 0.45rem;
+}
+
+.tide-reference-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.toggle-label {
+  font-size: 0.7rem;
+  font-style: italic;
+  color: var(--muted);
+  margin-right: 0.15rem;
+}
+
+.toggle-btn {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-size: 0.65rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid rgba(139, 115, 85, 0.25);
+  border-radius: 3px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.toggle-btn:hover {
+  background: rgba(139, 115, 85, 0.06);
+}
+
+.toggle-btn-active {
+  background: rgba(26, 58, 92, 0.08);
+  border-color: rgba(26, 58, 92, 0.35);
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.threshold-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.threshold-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.threshold-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.threshold-label input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(139, 115, 85, 0.4);
+  border-radius: 2px;
+  background: rgba(255, 248, 236, 0.6);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.threshold-label input[type="checkbox"]:checked {
+  background: var(--navy);
+  border-color: var(--navy);
+}
+
+.threshold-label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 3.5px;
+  top: 1px;
+  width: 4px;
+  height: 7px;
+  border: solid #f0e6d3;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+.threshold-label input[type="checkbox"]:hover {
+  border-color: rgba(139, 115, 85, 0.65);
+}
+
+.threshold-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.threshold-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid rgba(139, 115, 85, 0.3);
+  border-radius: 4px;
+  background: rgba(255, 248, 236, 0.6);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.threshold-input:focus {
+  border-color: rgba(139, 115, 85, 0.55);
+}
+
+.threshold-input:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.threshold-unit {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.3rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(139, 115, 85, 0.15);
+}
+
+.modal-actions-right {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.modal-btn {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-size: 0.72rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.modal-btn-secondary {
+  background: none;
+  border: 1px solid rgba(139, 115, 85, 0.3);
+  color: var(--muted);
+}
+
+.modal-btn-secondary:hover {
+  background: rgba(139, 115, 85, 0.08);
+}
+
+.modal-btn-primary {
+  background: var(--navy);
+  border: 1px solid var(--navy);
+  color: #f0e6d3;
+}
+
+.modal-btn-primary:hover {
+  background: #153050;
 }
 
 /* Responsive */
