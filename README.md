@@ -6,6 +6,10 @@ Tide heights are computed client-side using [@neaps/tide-predictor](https://gith
 
 Built with SolidJS and D3. Deployed on Cloudflare Pages.
 
+## Routing
+
+The app uses real pathname routing (e.g. `/9414290`, `/9414290/harmonics`) via the History API rather than hash fragments. A lightweight global click interceptor in `App.tsx` handles SPA navigation without needing `@solidjs/router`. Cloudflare Pages serves the SPA shell for all paths via `public/_redirects`; Vite's dev server does this by default.
+
 ## Dev scripts
 
 ```bash
