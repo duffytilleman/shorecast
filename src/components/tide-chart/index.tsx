@@ -49,12 +49,18 @@ export default function TideChart(props: TideChartProps) {
     container.innerHTML = ''
 
     const rect = container.getBoundingClientRect()
-    const containerWidth = Math.max(rect.width, 600)
-    const height = Math.max(300, rect.height || 540)
+    const isMobile = rect.width < 600
+    const containerWidth = Math.max(rect.width, isMobile ? 320 : 600)
+    const height = Math.max(isMobile ? 220 : 300, rect.height || 540)
     const hasTemp = props.metData?.temperature?.length
     const hasWind = props.metData?.wind?.length
-    const leftExtra = (hasTemp ? 35 : 0) + (hasWind ? 35 : 0)
-    const margin = { top: hasWind ? 56 : 26, right: 20, bottom: 52, left: 50 + leftExtra }
+    const leftExtra = (hasTemp ? (isMobile ? 25 : 35) : 0) + (hasWind ? (isMobile ? 25 : 35) : 0)
+    const margin = {
+      top: hasWind ? (isMobile ? 40 : 56) : (isMobile ? 18 : 26),
+      right: isMobile ? 10 : 20,
+      bottom: isMobile ? 36 : 52,
+      left: (isMobile ? 32 : 50) + leftExtra,
+    }
 
     const now = Date.now()
     const startTime = now - 12 * 60 * 60 * 1000

@@ -78,7 +78,8 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
       svgBox.innerHTML = ''
 
       const rect = svgBox.getBoundingClientRect()
-      const width = Math.max(rect.width, 720)
+      const isMobile = rect.width < 600
+      const width = Math.max(rect.width, isMobile ? 360 : 720)
 
       const sorted = [...props.constituents].sort((a, b) => b.amplitude - a.amplitude)
       const chain = sorted.slice(0, 8)
@@ -109,7 +110,7 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
       const maxDeviation = d3.max(initialWaveData, (d) => Math.abs(d.level - props.meanSeaLevel)) ?? totalR
       const verticalSpanFeet = Math.max(totalR, maxDeviation) + 0.6
 
-      const legendH = 72
+      const legendH = isMobile ? 110 : 72
       const controlsH = 52
       const tabPanel = svgBox.closest('.tab-panel')
       const availH = tabPanel ? tabPanel.getBoundingClientRect().height - controlsH : Infinity
@@ -428,7 +429,7 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
 
       // --- Legend ---
       const legendTop = height - legendH + 14
-      const legendColumns = 4
+      const legendColumns = isMobile ? 2 : 4
       const legendItemW = (width - 40) / legendColumns
       const legendItemH = 24
       const legendStartX = 20

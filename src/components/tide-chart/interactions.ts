@@ -133,7 +133,53 @@ export function setupInteractions(
     .attr('fill', '#5a4430')
     .attr('font-size', '11px')
 
-  svg.append('rect')
+  function updateTooltip(mx: number) {
+    const hoverTime = xScale.invert(mx).getTime()
+    const level = predictTide(hoverTime, constituents, meanSeaLevel)
+    const x = xScale(hoverTime)
+    const y = yScale(level)
+
+    hoverGroup.select('.hover-line')
+      .attr('x1', x).attr('x2', x)
+
+    hoverDot.attr('cx', x).attr('cy', y)
+
+    // Build tooltip lines
+    const timeStr = d3.timeFormat('%a %-I:%M %p')(new Date(hoverTime))
+    const lines: string[] = [timeStr, `${level.toFixed(2)} ft`]
+
+    if (metData?.temperature?.length) {
+      const temp = findNearest(metData.temperature, hoverTime)
+      if (temp) lines.push(`${temp.value.toFixed(0)}°F`)
+    }
+    if (metData?.wind?.length) {
+      const wind = findNearest(metData.wind, hoverTime)
+      if (wind) lines.push(`${Math.round(wind.speed)} kn ${wind.direction}`)
+    }
+
+    tooltipText.selectAll('tspan').remove()
+    lines.forEach((line, i) => {
+      tooltipText.append('tspan')
+        .attr('x', 8)
+        .attr('dy', i === 0 ? '1em' : '1.3em')
+        .text(line)
+    })
+
+    const bbox = (tooltipText.node()! as SVGTextElement).getBBox()
+    const tooltipW = bbox.width + 16
+    const tooltipH = bbox.height + 10
+
+    // Position tooltip to the right of cursor, flip if near edge
+    const tooltipX = x + 12
+    const flip = tooltipX + tooltipW > width - margin.right
+    hoverTooltip.attr('transform', `translate(${flip ? x - tooltipW - 12 : tooltipX},${Math.max(margin.top, y - tooltipH / 2)})`)
+
+    tooltipBg
+      .attr('width', tooltipW)
+      .attr('height', tooltipH)
+  }
+
+  const hitRect = svg.append('rect')
     .attr('x', margin.left)
     .attr('y', margin.top)
     .attr('width', width - margin.left - margin.right)
@@ -144,49 +190,25 @@ export function setupInteractions(
     .on('mouseleave', () => hoverGroup.style('display', 'none'))
     .on('mousemove', (event: MouseEvent) => {
       const [mx] = d3.pointer(event)
-      const hoverTime = xScale.invert(mx).getTime()
-      const level = predictTide(hoverTime, constituents, meanSeaLevel)
-      const x = xScale(hoverTime)
-      const y = yScale(level)
+      updateTooltip(mx)
+    })
 
-      hoverGroup.select('.hover-line')
-        .attr('x1', x).attr('x2', x)
-
-      hoverDot.attr('cx', x).attr('cy', y)
-
-      // Build tooltip lines
-      const timeStr = d3.timeFormat('%a %-I:%M %p')(new Date(hoverTime))
-      const lines: string[] = [timeStr, `${level.toFixed(2)} ft`]
-
-      if (metData?.temperature?.length) {
-        const temp = findNearest(metData.temperature, hoverTime)
-        if (temp) lines.push(`${temp.value.toFixed(0)}°F`)
-      }
-      if (metData?.wind?.length) {
-        const wind = findNearest(metData.wind, hoverTime)
-        if (wind) lines.push(`${Math.round(wind.speed)} kn ${wind.direction}`)
-      }
-
-      tooltipText.selectAll('tspan').remove()
-      lines.forEach((line, i) => {
-        tooltipText.append('tspan')
-          .attr('x', 8)
-          .attr('dy', i === 0 ? '1em' : '1.3em')
-          .text(line)
-      })
-
-      const bbox = (tooltipText.node()! as SVGTextElement).getBBox()
-      const tooltipW = bbox.width + 16
-      const tooltipH = bbox.height + 10
-
-      // Position tooltip to the right of cursor, flip if near edge
-      const tooltipX = x + 12
-      const flip = tooltipX + tooltipW > width - margin.right
-      hoverTooltip.attr('transform', `translate(${flip ? x - tooltipW - 12 : tooltipX},${Math.max(margin.top, y - tooltipH / 2)})`)
-
-      tooltipBg
-        .attr('width', tooltipW)
-        .attr('height', tooltipH)
+  // Touch support: tap to show tooltip, tap elsewhere to dismiss
+  hitRect
+    .on('touchstart', (event: TouchEvent) => {
+      event.preventDefault()
+      hoverGroup.style('display', null)
+      const [mx] = d3.pointer(event.touches[0], svg.node())
+      updateTooltip(mx)
+    }, { passive: false } as any)
+    .on('touchmove', (event: TouchEvent) => {
+      event.preventDefault()
+      const [mx] = d3.pointer(event.touches[0], svg.node())
+      updateTooltip(mx)
+    }, { passive: false } as any)
+    .on('touchend', () => {
+      // Keep tooltip visible for a moment after lifting finger
+      setTimeout(() => hoverGroup.style('display', 'none'), 1500)
     })
 
   // Invisible wider hit-targets for temp/wind lines (on top of crosshair overlay)
