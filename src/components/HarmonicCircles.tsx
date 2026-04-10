@@ -109,9 +109,13 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
       const maxDeviation = d3.max(initialWaveData, (d) => Math.abs(d.level - props.meanSeaLevel)) ?? totalR
       const verticalSpanFeet = Math.max(totalR, maxDeviation) + 0.6
 
-      const pxPerFt = Math.min((width * 0.17) / totalR, 58)
-      const epicycleCX = totalR * pxPerFt + 18
       const legendH = 72
+      const controlsH = 52
+      const tabPanel = svgBox.closest('.tab-panel')
+      const availH = tabPanel ? tabPanel.getBoundingClientRect().height - controlsH : Infinity
+      const pxPerFtFromHeight = availH > 200 ? (availH - 50 - legendH) / (2 * verticalSpanFeet) : Infinity
+      const pxPerFt = Math.min((width * 0.17) / totalR, 58, pxPerFtFromHeight)
+      const epicycleCX = totalR * pxPerFt + 18
       const height = Math.max(verticalSpanFeet * pxPerFt * 2 + 50 + legendH, 220)
       const cy = (height - legendH) / 2
 
