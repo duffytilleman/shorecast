@@ -1,6 +1,6 @@
 import { createSignal, onMount, For, Show } from 'solid-js'
 import { formatStationName } from '../lib/format'
-import { fetchStations, getRecentStations, type Station } from '../lib/noaa'
+import { fetchStations, getRecentStations, setLastStation, type Station } from '../lib/noaa'
 
 const MAX_RESULTS = 50
 
@@ -39,6 +39,11 @@ export default function StationSearch() {
       .slice(0, MAX_RESULTS)
   }
 
+  const navigate = (station: Station) => {
+    setLastStation(station.id, formatStationName(station.name))
+    window.location.href = `/${station.id}`
+  }
+
   return (
     <div class="station-search">
       <div class="search-prompt">
@@ -67,7 +72,7 @@ export default function StationSearch() {
               setActiveIndex((i) => Math.max(i - 1, -1))
             } else if (e.key === 'Enter' && activeIndex() >= 0) {
               e.preventDefault()
-              window.location.href = `/${items[activeIndex()].id}`
+              navigate(items[activeIndex()])
             }
           }}
         />
@@ -89,6 +94,7 @@ export default function StationSearch() {
                 class="search-result"
                 classList={{ 'search-result-active': i() === activeIndex() }}
                 ref={(el) => { if (i() === activeIndex()) el.scrollIntoView({ block: 'nearest' }) }}
+                onClick={(e) => { e.preventDefault(); navigate(station) }}
               >
                 <span class="result-name">{formatStationName(station.name)}</span>
                 <span class="result-meta">

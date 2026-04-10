@@ -5,7 +5,7 @@ import HarmonicCircles from './components/HarmonicCircles'
 import StationSearch from './components/StationSearch'
 import ThresholdSettings from './components/ThresholdSettings'
 import { formatStationName } from './lib/format'
-import { fetchStationData, fetchMetData, getLastStation, setLastStation } from './lib/noaa'
+import { fetchStationData, fetchMetData, getLastStation, getLastStationName, setLastStation } from './lib/noaa'
 import { loadThresholds, saveThresholds, type HighlightThresholds } from './lib/preferences'
 
 type Route =
@@ -99,9 +99,8 @@ function App() {
 
   const stationName = () => {
     const data = stationData()
-    if (!data) return null
-    // stationName from API is just the ID fallback; get a proper name from stations list if needed
-    return data.stationName !== stationId() ? formatStationName(data.stationName) : null
+    if (data && data.stationName !== stationId()) return formatStationName(data.stationName)
+    return getLastStationName()
   }
 
   createEffect(() => {
