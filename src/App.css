@@ -586,7 +586,8 @@
   transition: background 0.12s;
 }
 
-.search-result:hover {
+.search-result:hover,
+.search-result-active {
   background: rgba(139, 115, 85, 0.08);
 }
 

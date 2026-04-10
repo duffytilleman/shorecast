@@ -8,6 +8,7 @@ export default function StationSearch() {
   const [query, setQuery] = createSignal('')
   const [stations, setStations] = createSignal<Station[]>([])
   const [loading, setLoading] = createSignal(true)
+  const [activeIndex, setActiveIndex] = createSignal(-1)
 
   onMount(async () => {
     try {
@@ -47,12 +48,28 @@ export default function StationSearch() {
 
       <div class="search-input-wrap">
         <input
+          ref={(el) => setTimeout(() => el.focus())}
           type="text"
           class="search-input"
           placeholder="e.g. San Francisco, CA, or 9414290"
           value={query()}
-          onInput={(e) => setQuery(e.currentTarget.value)}
-          autofocus
+          onInput={(e) => {
+            setQuery(e.currentTarget.value)
+            setActiveIndex(-1)
+          }}
+          onKeyDown={(e) => {
+            const items = filtered()
+            if (e.key === 'ArrowDown') {
+              e.preventDefault()
+              setActiveIndex((i) => Math.min(i + 1, items.length - 1))
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault()
+              setActiveIndex((i) => Math.max(i - 1, -1))
+            } else if (e.key === 'Enter' && activeIndex() >= 0) {
+              e.preventDefault()
+              window.location.href = `/${items[activeIndex()].id}`
+            }
+          }}
         />
       </div>
 
@@ -66,8 +83,13 @@ export default function StationSearch() {
             <p class="search-empty" style="opacity: 0.6; font-style: italic">Recent stations</p>
           </Show>
           <For each={filtered()}>
-            {(station) => (
-              <a href={`/${station.id}`} class="search-result">
+            {(station, i) => (
+              <a
+                href={`/${station.id}`}
+                class="search-result"
+                classList={{ 'search-result-active': i() === activeIndex() }}
+                ref={(el) => { if (i() === activeIndex()) el.scrollIntoView({ block: 'nearest' }) }}
+              >
                 <span class="result-name">{formatStationName(station.name)}</span>
                 <span class="result-meta">
                   {station.state ? `${station.state} — ` : ''}
