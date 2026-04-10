@@ -1,6 +1,6 @@
 import { createSignal, createResource, createEffect, onCleanup, onMount, Show } from 'solid-js'
 import './App.css'
-import TideChart from './components/TideChart'
+import TideChart from './components/tide-chart'
 import HarmonicCircles from './components/HarmonicCircles'
 import StationSearch from './components/StationSearch'
 import ThresholdSettings from './components/ThresholdSettings'
