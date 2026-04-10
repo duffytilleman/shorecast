@@ -756,15 +756,16 @@ export default function TideChart(props: TideChartProps) {
       ) {
         if (yPos < margin.top || yPos > height - margin.bottom) return
         // Dashed line across chart
+        const isTide = thresholdClass === 'tide-threshold'
         const thLine = svg.append('line')
           .attr('x1', margin.left)
           .attr('x2', width - margin.right)
           .attr('y1', yPos)
           .attr('y2', yPos)
           .attr('stroke', color)
-          .attr('stroke-width', 1)
-          .attr('stroke-dasharray', '4,4')
-          .attr('stroke-opacity', 0.4)
+          .attr('stroke-width', isTide ? 1.5 : 1)
+          .attr('stroke-dasharray', isTide ? '6,4' : '4,4')
+          .attr('stroke-opacity', isTide ? 0.7 : 0.4)
         if (thresholdClass) thLine.attr('class', thresholdClass)
         if (thresholdKey) thLine.attr('data-threshold-key', thresholdKey)
 
@@ -808,11 +809,11 @@ export default function TideChart(props: TideChartProps) {
         const tideOffset = (th.tideReference ?? 'msl') === 'msl' ? props.meanSeaLevel : 0
         if (th.tideMin != null) {
           const datumVal = th.tideMin + tideOffset
-          drawMarker(yScale(datumVal), margin.left, `${th.tideMin} ft`, '#e8a735', datumVal, tideTicks, undefined, 'tideMin')
+          drawMarker(yScale(datumVal), margin.left, `${datumVal.toFixed(1)} ft`, '#9b4d2b', datumVal, tideTicks, 'tide-threshold', 'tideMin')
         }
         if (th.tideMax != null) {
           const datumVal = th.tideMax + tideOffset
-          drawMarker(yScale(datumVal), margin.left, `${th.tideMax} ft`, '#e8a735', datumVal, tideTicks, undefined, 'tideMax')
+          drawMarker(yScale(datumVal), margin.left, `${datumVal.toFixed(1)} ft`, '#9b4d2b', datumVal, tideTicks, 'tide-threshold', 'tideMax')
         }
       }
 
@@ -1030,6 +1031,21 @@ export default function TideChart(props: TideChartProps) {
         if (key) addThresholdDrag(hitTarget, key, lineClass, axisClass)
       })
     }
+
+    // Hit targets for tide threshold lines (no overlay highlight, just drag)
+    svg.selectAll('.tide-threshold').each(function () {
+      const orig = d3.select(this)
+      const key = orig.attr('data-threshold-key')
+      const hitTarget = svg.append('line')
+        .attr('x1', orig.attr('x1'))
+        .attr('x2', orig.attr('x2'))
+        .attr('y1', orig.attr('y1'))
+        .attr('y2', orig.attr('y2'))
+        .attr('stroke', 'transparent')
+        .attr('stroke-width', 12)
+        .attr('pointer-events', 'stroke')
+      if (key) addThresholdDrag(hitTarget, key, '', '')
+    })
 
     // Add drag to threshold marker groups (triangle + label on the axis)
     svg.selectAll('.threshold-marker').each(function () {
