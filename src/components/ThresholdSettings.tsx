@@ -48,8 +48,26 @@ function NumberInput(props: {
 export default function ThresholdSettings(props: Props) {
   const [draft, setDraft] = createSignal<HighlightThresholds>({ ...props.thresholds })
 
+  const minMaxPairs: [keyof HighlightThresholds, keyof HighlightThresholds][] = [
+    ['tideMin', 'tideMax'],
+    ['tempMin', 'tempMax'],
+    ['windMin', 'windMax'],
+  ]
+
   const update = (key: keyof HighlightThresholds, value: number | null) => {
-    setDraft((prev) => ({ ...prev, [key]: value }))
+    setDraft((prev) => {
+      if (value == null) return { ...prev, [key]: value }
+      const next = { ...prev, [key]: value }
+      for (const [minKey, maxKey] of minMaxPairs) {
+        if (key === minKey && next[maxKey] != null && value > (next[maxKey] as number)) {
+          next[maxKey] = value as any
+        }
+        if (key === maxKey && next[minKey] != null && value < (next[minKey] as number)) {
+          next[minKey] = value as any
+        }
+      }
+      return next
+    })
   }
 
   const handleSave = () => {

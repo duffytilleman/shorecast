@@ -788,7 +788,7 @@ export default function TideChart(props: TideChartProps) {
             .attr('x', axisX - 4)
             .attr('y', yPos + 3.5)
             .attr('text-anchor', 'end')
-            .attr('font-size', '8.5px')
+            .attr('font-size', '10px')
             .attr('font-style', 'italic')
             .attr('fill', color)
             .text(label)
@@ -958,6 +958,33 @@ export default function TideChart(props: TideChartProps) {
       let dragged = false
       let markerAxisX = 0
 
+      // Convert a raw pixel Y to a clamped value and pixel Y
+      function clampDrag(eventY: number): { y: number; value: number } {
+        const y = Math.max(margin.top, Math.min(height - margin.bottom, eventY))
+        let val = scale.invert(y)
+        if (thresholdKey.startsWith('tide')) val -= tideOffset
+        let clamped = Math.round(val * 10) / 10
+        if (thresholdKey.startsWith('wind')) clamped = Math.max(0, clamped)
+        const th = props.thresholds
+        if (th) {
+          const pairs: [string, string][] = [['tideMin', 'tideMax'], ['tempMin', 'tempMax'], ['windMin', 'windMax']]
+          for (const [minKey, maxKey] of pairs) {
+            if (thresholdKey === minKey && th[maxKey as keyof HighlightThresholds] != null)
+              clamped = Math.min(clamped, th[maxKey as keyof HighlightThresholds] as number)
+            if (thresholdKey === maxKey && th[minKey as keyof HighlightThresholds] != null)
+              clamped = Math.max(clamped, th[minKey as keyof HighlightThresholds] as number)
+          }
+        }
+        const scaleVal = thresholdKey.startsWith('tide') ? clamped + tideOffset : clamped
+        return { y: scale(scaleVal), value: thresholdKey.startsWith('tide') ? scaleVal : clamped }
+      }
+
+      function formatLabel(value: number): string {
+        if (thresholdKey.startsWith('tide')) return `${value.toFixed(1)} ft`
+        if (thresholdKey.startsWith('temp')) return `${value}°`
+        return `${value}`
+      }
+
       const drag = d3.drag<any, any>()
         .on('start', () => {
           dragged = false
@@ -970,14 +997,28 @@ export default function TideChart(props: TideChartProps) {
         })
         .on('drag', (event) => {
           dragged = true
-          const newY = Math.max(margin.top, Math.min(height - margin.bottom, event.y))
+          const { y: newY, value } = clampDrag(event.y)
+          const label = formatLabel(value)
           // Move the threshold line
           svg.selectAll(`line[data-threshold-key="${thresholdKey}"]`).attr('y1', newY).attr('y2', newY)
-          // Move the marker group elements
+          // Move the marker group elements and update label
           svg.selectAll(`g[data-threshold-key="${thresholdKey}"]`).each(function () {
             const g = d3.select(this)
             g.select('path').attr('transform', `translate(${markerAxisX},${newY})`)
-            g.select('text').attr('y', newY + 3.5)
+            const text = g.select('text')
+            if (text.empty()) {
+              // Label was hidden (coincided with a tick); create it
+              g.append('text')
+                .attr('x', markerAxisX - 4)
+                .attr('y', newY + 3.5)
+                .attr('text-anchor', 'end')
+                .attr('font-size', '10px')
+                .attr('font-style', 'italic')
+                .attr('fill', g.select('path').attr('fill'))
+                .text(label)
+            } else {
+              text.attr('y', newY + 3.5).text(label)
+            }
             g.select('rect').attr('y', newY - 8)
           })
           // Move hit-target line if present
@@ -991,14 +1032,10 @@ export default function TideChart(props: TideChartProps) {
             props.onOpenSettings?.()
             return
           }
-          const newY = Math.max(margin.top, Math.min(height - margin.bottom, event.y))
-          let rawValue = scale.invert(newY)
-          if (thresholdKey.startsWith('tide')) rawValue -= tideOffset
-          // Round to 1 decimal
-          const rounded = Math.round(rawValue * 10) / 10
-          // Wind can't go below 0
-          const clamped = thresholdKey.startsWith('wind') ? Math.max(0, rounded) : rounded
-          props.onUpdateThreshold?.(thresholdKey as keyof HighlightThresholds, clamped)
+          const { value } = clampDrag(event.y)
+          // For tide, clampDrag returns datum-relative; convert back to user reference
+          const finalValue = thresholdKey.startsWith('tide') ? Math.round((value - tideOffset) * 10) / 10 : value
+          props.onUpdateThreshold?.(thresholdKey as keyof HighlightThresholds, finalValue)
         })
 
       target.call(drag)
