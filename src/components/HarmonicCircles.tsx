@@ -84,19 +84,26 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
       const chain = sorted.slice(0, 8)
       const remainder = sorted.slice(8)
 
-      function tideFromConstituents(t: number) {
-        return props.meanSeaLevel + sorted.reduce((sum, constituent) => sum + getConstituentVector(t, constituent).level, 0)
-      }
-
-      function buildWaveData(centerTime: number) {
-        const waveData: { mins: number; level: number }[] = []
+      function buildAllWaveData(centerTime: number) {
+        const combined: { mins: number; level: number }[] = []
+        const individual: { mins: number; level: number }[][] = chain.map(() => [])
         for (let m = -RANGE_HRS * 60; m <= RANGE_HRS * 60; m += SAMPLE_STEP_MINUTES) {
-          waveData.push({ mins: m, level: tideFromConstituents(centerTime + m * 60000) })
+          const t = centerTime + m * 60000
+          let total = 0
+          for (let i = 0; i < sorted.length; i++) {
+            const level = getConstituentVector(t, sorted[i]).level
+            total += level
+            if (i < chain.length) {
+              individual[i].push({ mins: m, level: props.meanSeaLevel + level })
+            }
+          }
+          combined.push({ mins: m, level: props.meanSeaLevel + total })
         }
-        return waveData
+        return { combined, individual }
       }
 
-      const initialWaveData = buildWaveData(anchorTime)
+      const initialWaves = buildAllWaveData(anchorTime)
+      const initialWaveData = initialWaves.combined
 
       const totalR = chain.reduce((sum, constituent) => sum + constituent.amplitude, 0)
       const maxDeviation = d3.max(initialWaveData, (d) => Math.abs(d.level - props.meanSeaLevel)) ?? totalR
@@ -310,6 +317,18 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
         .attr('d', area)
         .attr('fill', `url(#${waveGradientId})`)
 
+      // Individual constituent wave lines
+      const constituentWaves = chain.map((_c, i) =>
+        svg
+          .append('path')
+          .datum(initialWaves.individual[i])
+          .attr('d', line)
+          .attr('fill', 'none')
+          .attr('stroke', CHAIN_COLORS[i])
+          .attr('stroke-width', 1)
+          .attr('stroke-opacity', 0.25)
+      )
+
       // Wave path
       const wavePath = svg
         .append('path')
@@ -444,10 +463,14 @@ export default function HarmonicCircles(props: HarmonicCirclesProps) {
 
       function animate() {
         const t = getTime()
-        const waveData = buildWaveData(t)
+        const { combined, individual } = buildAllWaveData(t)
 
-        waveArea.datum(waveData).attr('d', area)
-        wavePath.datum(waveData).attr('d', line)
+        waveArea.datum(combined).attr('d', area)
+        wavePath.datum(combined).attr('d', line)
+
+        constituentWaves.forEach((path, i) => {
+          path.datum(individual[i]).attr('d', line)
+        })
 
         let x = epicycleCX
         let y = cy
