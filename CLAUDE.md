@@ -16,6 +16,17 @@ Shorecast — SolidJS + D3 web app for visualizing NOAA tide predictions, weathe
 - **Test:** `pnpm test`
 - **Build:** `pnpm build`
 
+## Preview deploys
+
+Cloudflare Pages deploys a preview for each branch at `<alias>.shorecast.pages.dev`. The alias is generated from the branch name by:
+
+1. Lowercasing
+2. Replacing non-alphanumeric characters with `-`
+3. Truncating to **28 characters**
+4. Trimming leading/trailing `-`
+
+For example, branch `claude/improve-mobile-compatibility-A65gr` becomes `claude-improve-mobile-compat.shorecast.pages.dev`.
+
 ## Version control
 
 Use jj (Jujutsu), not git, for all version control operations.
