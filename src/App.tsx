@@ -13,21 +13,21 @@ type Route =
   | { page: 'harmonics'; stationId: string }
 
 function parseRoute(): Route {
-  const hash = window.location.hash.replace(/^#\/?/, '')
-  if (!hash || hash === 'search') return { page: 'search' }
+  const path = window.location.pathname.replace(/^\/+/, '')
+  if (!path || path === 'search') return { page: 'search' }
 
-  const parts = hash.split('/')
+  const parts = path.split('/')
   const stationId = parts[0]
   if (parts[1] === 'harmonics') return { page: 'harmonics', stationId }
   return { page: 'chart', stationId }
 }
 
 function App() {
-  // On first load, redirect #/ to last station if saved
-  if (!window.location.hash || window.location.hash === '#/' || window.location.hash === '#') {
+  // On first load, redirect / to last station if saved
+  if (window.location.pathname === '/') {
     const last = getLastStation()
     if (last) {
-      window.location.hash = `#/${last}`
+      history.replaceState(null, '', `/${last}`)
     }
   }
 
@@ -40,10 +40,35 @@ function App() {
     saveThresholds(t)
   }
 
+  // Lightweight SPA router: instead of pulling in @solidjs/router, we use a
+  // global click interceptor + popstate listener. This keeps the dependency
+  // count low for a simple 3-route app. The trade-off is less idiomatic Solid,
+  // but the routing surface is small enough that a full router isn't warranted.
   onMount(() => {
     const sync = () => setRoute(parseRoute())
-    window.addEventListener('hashchange', sync)
-    onCleanup(() => window.removeEventListener('hashchange', sync))
+    window.addEventListener('popstate', sync)
+
+    // Intercept clicks on internal <a href="/..."> links so they use
+    // pushState instead of triggering a full page load. Modifier keys
+    // (Cmd/Ctrl/Shift/Alt) and target attributes are respected so that
+    // "open in new tab" still works normally.
+    const onClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest('a')
+      if (!anchor) return
+      const href = anchor.getAttribute('href')
+      if (!href || !href.startsWith('/')) return
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      if (anchor.target && anchor.target !== '_self') return
+      e.preventDefault()
+      history.pushState(null, '', href)
+      setRoute(parseRoute())
+    }
+    document.addEventListener('click', onClick)
+
+    onCleanup(() => {
+      window.removeEventListener('popstate', sync)
+      document.removeEventListener('click', onClick)
+    })
   })
 
   const stationId = () => {
@@ -89,7 +114,7 @@ function App() {
         <Show when={stationId()} fallback={<h1 class="title">Shorecast</h1>}>
           <h1 class="title">
             {stationName() ?? 'Shorecast'}
-            <a href="#/search" class="change-station-link" title="Change station">&#x21C6;</a>
+            <a href="/search" class="change-station-link" title="Change station">&#x21C6;</a>
           </h1>
           <p class="subtitle">Station {stationId()}</p>
         </Show>
@@ -147,9 +172,9 @@ function App() {
           <footer class="footer">
             <p>
               <Show when={route().page === 'chart'} fallback={
-                <>Harmonic tide predictions based on {stationData()!.constituents.length} constituents &bull; <a href={`#/${stationId()}`} class="footer-link">Back to tide chart</a></>
+                <>Harmonic tide predictions based on {stationData()!.constituents.length} constituents &bull; <a href={`/${stationId()}`} class="footer-link">Back to tide chart</a></>
               }>
-                Harmonic tide predictions based on <a href={`#/${stationId()}/harmonics`} class="footer-link">{stationData()!.constituents.length} constituents</a> &bull; Heights relative to mean water level
+                Harmonic tide predictions based on <a href={`/${stationId()}/harmonics`} class="footer-link">{stationData()!.constituents.length} constituents</a> &bull; Heights relative to mean water level
               </Show>
             </p>
           </footer>

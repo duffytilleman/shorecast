@@ -66,7 +66,7 @@ export default function StationSearch() {
           </Show>
           <For each={filtered()}>
             {(station) => (
-              <a href={`#/${station.id}`} class="search-result">
+              <a href={`/${station.id}`} class="search-result">
                 <span class="result-name">{station.name}</span>
                 <span class="result-meta">
                   {station.state ? `${station.state} — ` : ''}
