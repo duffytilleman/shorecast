@@ -69,6 +69,9 @@ export default function DailyTideChart(props: DailyTideChartProps) {
 
     const xExtent = [data[0].date, data[data.length - 1].date] as [Date, Date]
     const yExtent = d3.extent(data, (d) => d.level) as [number, number]
+    // Ensure MSL is always inside the y-domain so the relative shading reads correctly
+    if (props.meanSeaLevel < yExtent[0]) yExtent[0] = props.meanSeaLevel
+    if (props.meanSeaLevel > yExtent[1]) yExtent[1] = props.meanSeaLevel
     const yPad = Math.max((yExtent[1] - yExtent[0]) * 0.18, 0.5)
 
     const xScale = d3.scaleTime()
@@ -84,59 +87,65 @@ export default function DailyTideChart(props: DailyTideChartProps) {
       .attr('height', height)
       .attr('class', 'tide-svg daily-tide-svg')
 
-    // Y grid + axis
+    // Gradient — same as main tide chart so shading matches
+    const defs = svg.append('defs')
+    const gradient = defs.append('linearGradient')
+      .attr('id', 'daily-tide-area-gradient')
+      .attr('x1', '0').attr('y1', '0').attr('x2', '0').attr('y2', '1')
+    gradient.append('stop').attr('offset', '0%').attr('stop-color', '#2a5a7b').attr('stop-opacity', 0.35)
+    gradient.append('stop').attr('offset', '100%').attr('stop-color', '#1a3a4a').attr('stop-opacity', 0.05)
+
+    // Y grid — faint ledger lines
     const yTicks = yScale.ticks(6)
-    svg.append('g').attr('class', 'grid')
-      .selectAll('line').data(yTicks).join('line')
+    svg.selectAll('.grid-line-y')
+      .data(yTicks).enter().append('line')
       .attr('x1', margin.left).attr('x2', width - margin.right)
       .attr('y1', (d) => yScale(d)).attr('y2', (d) => yScale(d))
-      .attr('stroke', 'rgba(139, 115, 85, 0.18)')
-      .attr('stroke-dasharray', '2,3')
+      .attr('stroke', '#8b7355')
+      .attr('stroke-opacity', 0.15)
+      .attr('stroke-width', 0.5)
 
-    svg.append('g').attr('class', 'axis y-axis')
-      .attr('transform', `translate(${margin.left},0)`)
-      .call(d3.axisLeft(yScale).ticks(6).tickFormat((d) => `${(+d).toFixed(1)} ft`))
-      .call((g) => g.select('.domain').remove())
-      .call((g) => g.selectAll('.tick line').attr('stroke', 'rgba(139, 115, 85, 0.3)'))
-      .call((g) => g.selectAll('.tick text').attr('fill', 'var(--muted)'))
+    // X grid at week boundaries
+    const xWeekTicks = xScale.ticks(d3.timeWeek.every(1)!)
+    svg.selectAll('.grid-line-x')
+      .data(xWeekTicks).enter().append('line')
+      .attr('x1', (d) => xScale(d as Date)).attr('x2', (d) => xScale(d as Date))
+      .attr('y1', margin.top).attr('y2', height - margin.bottom)
+      .attr('stroke', '#8b7355')
+      .attr('stroke-opacity', 0.12)
+      .attr('stroke-width', 0.5)
 
-    // X axis — month/day ticks
-    const monthFormat = d3.timeFormat('%b %-d')
-    const xTickValues = xScale.ticks(d3.timeWeek.every(1)!)
-    svg.append('g').attr('class', 'axis x-axis')
-      .attr('transform', `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(xScale).tickValues(xTickValues).tickFormat((d) => monthFormat(d as Date)))
-      .call((g) => g.select('.domain').remove())
-      .call((g) => g.selectAll('.tick line').attr('stroke', 'rgba(139, 115, 85, 0.3)'))
-      .call((g) => g.selectAll('.tick text').attr('fill', 'var(--muted)'))
-
-    // Mean sea level line
+    // Mean sea level reference line
     svg.append('line')
       .attr('x1', margin.left).attr('x2', width - margin.right)
       .attr('y1', yScale(props.meanSeaLevel)).attr('y2', yScale(props.meanSeaLevel))
-      .attr('stroke', 'rgba(26, 58, 92, 0.45)')
-      .attr('stroke-dasharray', '4,3')
+      .attr('stroke', '#7d7d7d')
       .attr('stroke-width', 1)
+      .attr('stroke-dasharray', '8,4')
+      .attr('stroke-opacity', 0.6)
 
-    svg.append('text').attr('class', 'mean-label')
+    svg.append('text')
       .attr('x', width - margin.right - 4)
-      .attr('y', yScale(props.meanSeaLevel) - 4)
+      .attr('y', yScale(props.meanSeaLevel) - 6)
       .attr('text-anchor', 'end')
-      .text(`MSL ${props.meanSeaLevel.toFixed(2)} ft`)
+      .attr('class', 'mean-label')
+      .text('Mean Sea Level')
 
-    // Area fill under curve
+    // Area shaded relative to MSL — y0 anchored at MSL, y1 follows the curve.
+    // Above MSL, fill renders between MSL line and curve at the upper portion of the gradient
+    // (more saturated). Below MSL, fill renders downward into the lower, paler gradient stop.
     const area = d3.area<typeof data[number]>()
       .x((d) => xScale(d.date))
-      .y0(yScale(yExtent[0] - yPad))
+      .y0(yScale(props.meanSeaLevel))
       .y1((d) => yScale(d.level))
       .curve(d3.curveMonotoneX)
 
     svg.append('path')
       .datum(data)
-      .attr('fill', 'rgba(26, 58, 92, 0.12)')
       .attr('d', area)
+      .attr('fill', 'url(#daily-tide-area-gradient)')
 
-    // Tide line
+    // Tide line — same color/weight as main chart
     const line = d3.line<typeof data[number]>()
       .x((d) => xScale(d.date))
       .y((d) => yScale(d.level))
@@ -144,80 +153,137 @@ export default function DailyTideChart(props: DailyTideChartProps) {
 
     svg.append('path')
       .datum(data)
+      .attr('d', line)
       .attr('fill', 'none')
       .attr('stroke', '#1a3a5c')
-      .attr('stroke-width', 1.6)
-      .attr('d', line)
+      .attr('stroke-width', 2.5)
+      .attr('stroke-linecap', 'round')
 
-    // Min/max markers
+    // Min/max markers — ink/sepia like the main chart
     const minPoint = data.reduce((acc, d) => d.level < acc.level ? d : acc, data[0])
     const maxPoint = data.reduce((acc, d) => d.level > acc.level ? d : acc, data[0])
-    const fmtDate = d3.timeFormat('%b %-d')
+    const fmtExtremaDate = d3.timeFormat('%b %-d')
 
     for (const [point, type] of [[maxPoint, 'high'], [minPoint, 'low']] as const) {
       const cx = xScale(point.date)
       const cy = yScale(point.level)
-      const labelOffset = type === 'high' ? -10 : 16
       svg.append('circle')
-        .attr('cx', cx).attr('cy', cy).attr('r', 3.5)
-        .attr('fill', type === 'high' ? '#c0392b' : '#2a6a4a')
+        .attr('cx', cx).attr('cy', cy).attr('r', 3)
+        .attr('fill', type === 'high' ? '#1a3a5c' : '#6b5335')
+        .attr('stroke', '#f0e6d3')
+        .attr('stroke-width', 1)
       svg.append('text').attr('class', 'extrema-label')
-        .attr('x', cx).attr('y', cy + labelOffset)
+        .attr('x', cx).attr('y', type === 'high' ? cy - 12 : cy + 16)
         .attr('text-anchor', 'middle')
-        .text(`${point.level.toFixed(2)} ft`)
+        .text(`${point.level.toFixed(1)} ft`)
       svg.append('text').attr('class', 'extrema-time')
-        .attr('x', cx).attr('y', cy + labelOffset + 11)
+        .attr('x', cx).attr('y', type === 'high' ? cy - 24 : cy + 28)
         .attr('text-anchor', 'middle')
-        .text(fmtDate(point.date))
+        .text(fmtExtremaDate(point.date))
     }
 
-    // Hover line + tooltip
-    const focus = svg.append('g').style('display', 'none')
-    focus.append('line')
-      .attr('class', 'focus-line')
+    // X axis — date ticks
+    const monthFormat = d3.timeFormat('%b %-d')
+    svg.append('g')
+      .attr('class', 'axis x-axis')
+      .attr('transform', `translate(0,${height - margin.bottom})`)
+      .call(
+        d3.axisBottom(xScale)
+          .tickValues(xWeekTicks)
+          .tickFormat((d) => monthFormat(d as Date))
+          .tickSize(6),
+      )
+      .call((g) => g.select('.domain').attr('stroke', '#6b5335').attr('stroke-opacity', 0.6))
+      .call((g) => g.selectAll('.tick line').attr('stroke', '#6b5335').attr('stroke-opacity', 0.4))
+      .call((g) => g.selectAll('.tick text').attr('fill', '#5a4430'))
+
+    // Y axis
+    svg.append('g')
+      .attr('class', 'axis y-axis')
+      .attr('transform', `translate(${margin.left},0)`)
+      .call(d3.axisLeft(yScale).ticks(6).tickFormat((d) => `${d} ft`).tickSize(6))
+      .call((g) => g.select('.domain').attr('stroke', '#6b5335').attr('stroke-opacity', 0.6))
+      .call((g) => g.selectAll('.tick line').attr('stroke', '#6b5335').attr('stroke-opacity', 0.4))
+      .call((g) => g.selectAll('.tick text').attr('fill', '#5a4430'))
+
+    // --- Hover crosshair (mirrors main TideChart) ---
+    const hoverGroup = svg.append('g').style('display', 'none')
+
+    hoverGroup.append('line')
+      .attr('class', 'hover-line')
       .attr('y1', margin.top).attr('y2', height - margin.bottom)
-      .attr('stroke', 'rgba(192, 57, 43, 0.6)')
+      .attr('stroke', '#5a4430')
       .attr('stroke-width', 1)
-    focus.append('circle').attr('r', 4).attr('fill', '#c0392b')
+      .attr('stroke-dasharray', '4,3')
+      .attr('stroke-opacity', 0.6)
 
-    const tooltipBg = focus.append('rect')
-      .attr('fill', 'rgba(246, 239, 223, 0.96)')
-      .attr('stroke', 'rgba(139, 115, 85, 0.4)')
-      .attr('rx', 3)
-    const tooltipText = focus.append('text')
-      .attr('class', 'extrema-label')
-      .attr('text-anchor', 'middle')
+    const hoverDot = hoverGroup.append('circle')
+      .attr('r', 4)
+      .attr('fill', '#1a3a5c')
+      .attr('stroke', '#f0e6d3')
+      .attr('stroke-width', 1.5)
 
-    const tooltipFmt = d3.timeFormat('%a %b %-d')
+    const hoverTooltip = hoverGroup.append('g').attr('class', 'hover-tooltip')
+
+    const tooltipBg = hoverTooltip.append('rect')
+      .attr('fill', 'rgba(240, 230, 211, 0.92)')
+      .attr('stroke', '#8b7355')
+      .attr('stroke-width', 0.5)
+      .attr('rx', 4)
+
+    const tooltipText = hoverTooltip.append('text')
+      .attr('fill', '#5a4430')
+      .attr('font-size', '11px')
+
+    const tooltipFmtDate = d3.timeFormat('%a %b %-d')
+    const bisectDate = d3.bisector<typeof data[number], Date>((d) => d.date).left
 
     svg.append('rect')
-      .attr('x', margin.left).attr('y', margin.top)
+      .attr('x', margin.left)
+      .attr('y', margin.top)
       .attr('width', width - margin.left - margin.right)
       .attr('height', height - margin.top - margin.bottom)
-      .attr('fill', 'transparent')
-      .style('cursor', 'crosshair')
-      .on('mouseenter', () => focus.style('display', null))
-      .on('mouseleave', () => focus.style('display', 'none'))
-      .on('mousemove', (event) => {
+      .attr('fill', 'none')
+      .attr('pointer-events', 'all')
+      .on('mouseenter', () => hoverGroup.style('display', null))
+      .on('mouseleave', () => hoverGroup.style('display', 'none'))
+      .on('mousemove', (event: MouseEvent) => {
         const [mx] = d3.pointer(event)
         const t = xScale.invert(mx)
-        const bisect = d3.bisector<typeof data[number], Date>((d) => d.date).left
-        const idx = Math.max(0, Math.min(data.length - 1, bisect(data, t)))
+        const idx = Math.max(0, Math.min(data.length - 1, bisectDate(data, t)))
         const d0 = data[Math.max(0, idx - 1)]
         const d1 = data[idx]
         const point = !d0 || (t.getTime() - d0.date.getTime()) > (d1.date.getTime() - t.getTime()) ? d1 : d0
-        const cx = xScale(point.date)
-        const cy = yScale(point.level)
-        focus.select('.focus-line').attr('x1', cx).attr('x2', cx)
-        focus.select('circle').attr('cx', cx).attr('cy', cy)
-        const label = `${tooltipFmt(point.date)} — ${point.level.toFixed(2)} ft`
-        tooltipText
-          .attr('x', cx).attr('y', margin.top - 8)
-          .text(label)
+
+        const x = xScale(point.date)
+        const y = yScale(point.level)
+
+        hoverGroup.select('.hover-line').attr('x1', x).attr('x2', x)
+        hoverDot.attr('cx', x).attr('cy', y)
+
+        const lines = [
+          tooltipFmtDate(point.date),
+          `${point.level.toFixed(2)} ft`,
+          `at ${formatTimeLabel(timeValue())}`,
+        ]
+
+        tooltipText.selectAll('tspan').remove()
+        lines.forEach((text, i) => {
+          tooltipText.append('tspan')
+            .attr('x', 8)
+            .attr('dy', i === 0 ? '1em' : '1.3em')
+            .text(text)
+        })
+
         const bbox = (tooltipText.node() as SVGTextElement).getBBox()
-        tooltipBg
-          .attr('x', bbox.x - 5).attr('y', bbox.y - 2)
-          .attr('width', bbox.width + 10).attr('height', bbox.height + 4)
+        const tooltipW = bbox.width + 16
+        const tooltipH = bbox.height + 10
+
+        const preferredX = x + 12
+        const flip = preferredX + tooltipW > width - margin.right
+        hoverTooltip.attr('transform', `translate(${flip ? x - tooltipW - 12 : preferredX},${Math.max(margin.top, y - tooltipH / 2)})`)
+
+        tooltipBg.attr('width', tooltipW).attr('height', tooltipH)
       })
   }
 
