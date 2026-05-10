@@ -2,6 +2,7 @@ import { createSignal, createResource, createEffect, onCleanup, onMount, Show } 
 import './App.css'
 import TideChart from './components/tide-chart'
 import HarmonicCircles from './components/HarmonicCircles'
+import DailyTideChart from './components/DailyTideChart'
 import StationSearch from './components/StationSearch'
 import ThresholdSettings from './components/ThresholdSettings'
 import { formatStationName } from './lib/format'
@@ -12,6 +13,7 @@ type Route =
   | { page: 'search' }
   | { page: 'chart'; stationId: string }
   | { page: 'harmonics'; stationId: string }
+  | { page: 'daily'; stationId: string }
 
 function parseRoute(): Route {
   const path = window.location.pathname.replace(/^\/+/, '')
@@ -20,6 +22,7 @@ function parseRoute(): Route {
   const parts = path.split('/')
   const stationId = parts[0]
   if (parts[1] === 'harmonics') return { page: 'harmonics', stationId }
+  if (parts[1] === 'daily') return { page: 'daily', stationId }
   return { page: 'chart', stationId }
 }
 
@@ -156,7 +159,11 @@ function App() {
             <section
               class="graph-shell"
               classList={{ 'graph-shell-plain': true }}
-              aria-label={route().page === 'chart' ? 'Main tide chart' : 'Harmonic constituents'}
+              aria-label={
+                route().page === 'chart' ? 'Main tide chart'
+                : route().page === 'harmonics' ? 'Harmonic constituents'
+                : 'Daily tide at fixed time'
+              }
             >
               <div class="tab-panel-frame">
                 <Show when={route().page === 'chart'}>
@@ -167,6 +174,11 @@ function App() {
                 <Show when={route().page === 'harmonics'}>
                   <section class="tab-panel">
                     <HarmonicCircles constituents={data().constituents} meanSeaLevel={data().meanSeaLevel} />
+                  </section>
+                </Show>
+                <Show when={route().page === 'daily'}>
+                  <section class="tab-panel">
+                    <DailyTideChart constituents={data().constituents} meanSeaLevel={data().meanSeaLevel} />
                   </section>
                 </Show>
               </div>
@@ -180,7 +192,7 @@ function App() {
               <Show when={route().page === 'chart'} fallback={
                 <>Harmonic tide predictions based on {stationData()!.constituents.length} constituents &bull; <a href={`/${stationId()}`} class="footer-link">Back to tide chart</a></>
               }>
-                Harmonic tide predictions based on <a href={`/${stationId()}/harmonics`} class="footer-link">{stationData()!.constituents.length} constituents</a> &bull; Heights relative to mean water level
+                Harmonic tide predictions based on <a href={`/${stationId()}/harmonics`} class="footer-link">{stationData()!.constituents.length} constituents</a> &bull; <a href={`/${stationId()}/daily`} class="footer-link">90-day forecast at a fixed time</a> &bull; Heights relative to mean water level
               </Show>
             </p>
           </footer>
